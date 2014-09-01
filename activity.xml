@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tryton>
+    <data>
+        <record model="ir.action.wizard" id="wizard_replymail">
+            <field name="name">Reply Mail</field>
+            <field name="wiz_name">activity.activity.replymail</field>
+            <field name="model">activity.activity</field>
+        </record>
+
+        <record model="ir.ui.view" id="activity_activity_form_view">
+            <field name="model">activity.activity</field>
+            <field name="inherit" ref="activity.activity_activity_form_view"/>
+            <field name="name">activity_activity_form</field>
+        </record>
+
+        <record model="ir.ui.view" id="activity_activity_tree_view">
+            <field name="model">activity.activity</field>
+            <field name="inherit" ref="activity.activity_activity_tree_view"/>
+            <field name="name">activity_activity_tree</field>
+        </record>
+    </data>
+</tryton>

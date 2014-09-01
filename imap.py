@@ -1,7 +1,7 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
 from trytond.pool import Pool, PoolMeta
-from trytond.model import ModelView
+from trytond.model import fields
 
 __all__ = ['IMAPServer']
 __metaclass__ = PoolMeta
@@ -10,13 +10,22 @@ __metaclass__ = PoolMeta
 class IMAPServer:
     __name__ = 'imap.server'
 
+    employee = fields.Many2One('company.employee', 'Default Employee')
+
     @classmethod
-    @ModelView.button
-    def get_emails(cls, servers):
+    def fetch_emails(cls, servers):
+        Activity = Pool().get('activity.activity')
+        activity_servers = []
+        other_servers = []
         for server in servers:
-            if server.model and server.model == 'activity.activity':
-                Activity = Pool().get('activity.activity')
-                mails = Activity.create_activity(servers)
+            if server.model and server.model.model == 'activity.activity':
+                activity_servers.append(server)
             else:
-                mails = super(IMAPServer, cls).get_emails(servers)
+                other_servers.append(server)
+        mails = {}
+        if activity_servers:
+            mails.update(super(IMAPServer, cls).fetch_emails(activity_servers))
+            Activity.create_activity(mails)
+        if other_servers:
+            mails.update(super(IMAPServer, cls).fetch_emails(other_servers))
         return mails

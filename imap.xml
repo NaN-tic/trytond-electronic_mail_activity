@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tryton>
+    <data>
+        <record model="ir.ui.view" id="imap_server_view_form">
+            <field name="model">imap.server</field>
+            <field name="inherit" ref="imap.imap_server_view_form"/>
+            <field name="name">imap_server_form</field>
+        </record>
+    </data>
+</tryton>
