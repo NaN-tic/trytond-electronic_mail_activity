@@ -24,8 +24,8 @@ class IMAPServer:
                 other_servers.append(server)
         mails = {}
         if activity_servers:
-            mails.update(super(IMAPServer, cls).fetch_emails(activity_servers))
+            mails.update(super(IMAPServer, cls).fetch_mails(activity_servers))
             Activity.create_activity(mails)
         if other_servers:
-            mails.update(super(IMAPServer, cls).fetch_emails(other_servers))
+            mails.update(super(IMAPServer, cls).fetch_mails(other_servers))
         return mails
