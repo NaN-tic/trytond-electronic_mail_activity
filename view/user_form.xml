@@ -2,7 +2,7 @@
 <!-- This file is part of Tryton.  The COPYRIGHT file at the top level of
 this repository contains the full copyright notices and license terms. -->
 <data>
-    <xpath expr="/form/notebook/page[@id='user']/notebook[@id='signature']" position="after" >
+    <xpath expr="/form/notebook/page[@id='user']/notebook" position="after" >
         <group id="activity_mail_info" colspan="4" col="4">
             <label name="smtp_server"/>
             <field name="smtp_server"/>
