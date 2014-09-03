@@ -13,7 +13,7 @@ class IMAPServer:
     employee = fields.Many2One('company.employee', 'Default Employee')
 
     @classmethod
-    def fetch_emails(cls, servers):
+    def fetch_mails(cls, servers):
         Activity = Pool().get('activity.activity')
         activity_servers = []
         other_servers = []
@@ -24,8 +24,8 @@ class IMAPServer:
                 other_servers.append(server)
         mails = {}
         if activity_servers:
-            mails.update(super(IMAPServer, cls).fetch_emails(activity_servers))
+            mails.update(super(IMAPServer, cls).fetch_mails(activity_servers))
             Activity.create_activity(mails)
         if other_servers:
-            mails.update(super(IMAPServer, cls).fetch_emails(other_servers))
+            mails.update(super(IMAPServer, cls).fetch_mails(other_servers))
         return mails
