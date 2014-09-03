@@ -13,7 +13,7 @@ class IMAPServer:
     employee = fields.Many2One('company.employee', 'Default Employee')
 
     @classmethod
-    def fetch_emails(cls, servers):
+    def fetch_mails(cls, servers):
         Activity = Pool().get('activity.activity')
         activity_servers = []
         other_servers = []
