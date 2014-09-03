@@ -3,8 +3,8 @@
 this repository contains the full copyright notices and license terms. -->
 <data>
     <xpath expr="/tree/field[@name='state']" position="after">
-        <button name="new" string="Send Mail" icon="tryton-mail-message-new"/>
-        <button name="reply" string="Reply Mail" icon="tryton-go-next"/>
+        <button name="new" string="Send Mail"/>
+        <button name="reply" string="Reply Mail"/>
         <field name="have_mail" tree_invisible="1"/>
     </xpath>
 </data>
