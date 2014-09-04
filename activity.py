@@ -375,6 +375,7 @@ class Activity:
                         or html2text(mail.body_html)),
                     'mail': mail.id,
                     'state': 'planned',
+                    'resource': None,
                     }
                 values = base_values.copy()
                 if resource:
