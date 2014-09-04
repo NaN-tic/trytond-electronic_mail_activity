@@ -35,7 +35,7 @@ class Activity:
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
         states={
             'invisible': Eval('type') != 'email'
-            }, depends=['type'])
+            }, depends=['type'], ondelete='CASCADE')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
     signature = fields.Boolean('Use Signature', help='The Plain signature '
         'from the User details will be appened to the mail.')
