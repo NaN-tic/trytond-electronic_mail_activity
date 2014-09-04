@@ -365,7 +365,7 @@ class Activity:
                         party = resource and resource.party or party
 
                 # Create the activity
-                values = {
+                base_values = {
                     'subject': mail.subject,
                     'type': 'email',
                     'direction': 'incoming',
@@ -373,17 +373,22 @@ class Activity:
                     'dtstart': datetime.datetime.now(),
                     'description': (mail.body_plain
                         or html2text(mail.body_html)),
-                    'resource': resource or None,
                     'mail': mail.id,
                     'state': 'planned',
                     }
+                values = base_values.copy()
+                if resource:
+                    values['resource'] = resource
                 if party:
                     values['party'] = party.id
                 if main_contact:
                     values['main_contact'] = main_contact.id
                 if contacts:
                     values['contacts'] = [('add', contacts)]
-                activity = cls.create([values])
+                try:
+                    activity = cls.create([values])
+                except:
+                    activity = cls.create([base_values])
 
                 # Add all the possible attachments from the mil to the activity
                 msg = msg_from_string(mail.email_file)
@@ -397,7 +402,13 @@ class Activity:
                                 'data': attach.get('data'),
                                 'resource': str(activity[0])
                                 })
-                    Attachment.create(values)
+                    try:
+                        Attachment.create(values)
+                    except Exception, e:
+                        logging.getLogger('Activity Mail').info(
+                            'The mail (%s) has attachments but they are not '
+                            'possible to attach to the activity (%s).\n\n%s' %
+                            (mail.id, activity.id, e))
         return mails
 
 
