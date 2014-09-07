@@ -185,7 +185,7 @@ class Activity:
         #       refusal of a recipient).
         try:
             server = SMTP.get_smtp_server(user.smtp_server)
-            server.sendmail(mail.from_, ",".join(emails),
+            server.sendmail(mail.from_, emails,
                 ElectronicMail._get_email(mail))
             server.quit()
             ElectronicMail.write([mail], {
@@ -199,7 +199,7 @@ class Activity:
 
         logging.getLogger('Activity Mail').info(
             'Send email %s from activity %s (to %s)' % (mail.id, activity.id,
-                ",".join(emails)))
+                emails))
 
         return True
 
