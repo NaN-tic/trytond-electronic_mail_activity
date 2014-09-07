@@ -185,8 +185,8 @@ class Activity:
         #       refusal of a recipient).
         try:
             server = SMTP.get_smtp_server(user.smtp_server)
-            server.sendmail(mail.from_, emails,
-                ElectronicMail._get_email(mail))
+            mail_str = ElectronicMail._get_mail(mail)
+            server.sendmail(mail.from_, emails, mail_str)
             server.quit()
             ElectronicMail.write([mail], {
                     'flag_send': True,
@@ -212,26 +212,26 @@ class Activity:
         Attachment = Pool().get('ir.attachment')
 
         message = MIMEMultipart()
-        message['message_id'] = self.message_id
-        message['date'] = formatdate(localtime=True)
+        message['Message-Id'] = self.message_id
+        message['Date'] = formatdate(localtime=True)
 
         # If reply, take from the related activity the message_id and
         # reference information
         if self.related_activity:
-            message['in_reply_to'] = self.in_reply_to
-            message['reference'] = self.reference
-        message['from'] = (self.main_contact and formataddr((
+            message['In-Reply-To'] = self.in_reply_to
+            message['Reference'] = self.reference
+        message['From'] = (self.main_contact and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
             formataddr((user.employee.party.name, user.employee.party.email)))
-        message['to'] = (self.main_contact and formataddr((
+        message['To'] = (self.main_contact and formataddr((
                     _make_header(self.main_contact.name),
                     self.main_contact.email)) or
             formataddr((self.employee.party.name, self.employee.party.email)))
-        message['cc'] = ",".join([
+        message['Cc'] = ",".join([
                 formataddr((_make_header(c.name), c.email))
                 for c in self.contacts])
-        message['subject'] = _make_header(self.subject)
+        message['Subject'] = _make_header(self.subject)
         plain = self.description.encode('utf-8')
         if user.add_signature and user.signature:
             signature = user.signature.encode('utf-8')
@@ -263,7 +263,7 @@ class Activity:
         return message
 
     @classmethod
-    def create_activity(cls, emails):
+    def create_activity(cls, received_mails):
         IMAPServer = Pool().get('imap.server')
         CompanyEmployee = Pool().get('company.employee')
         ContactMechanism = Pool().get('party.contact_mechanism')
@@ -272,10 +272,17 @@ class Activity:
 
         values = []
         attachs = {}
-        for server_id, mails in emails.iteritems():
+        for server_id, mails in received_mails.iteritems():
             servers = IMAPServer.browse([server_id])
             server = servers and servers[0] or None
             for mail in mails:
+                # Control if the mail recevied is send by us, searching if
+                # there are any activity with that mail attached
+                activity_exist = cls.search([
+                    ('mail', '=', mail.id)
+                    ])
+                if activity_exist:
+                    continue
                 # Take the possible employee, if not the default.
                 deliveredto = (mail.deliveredto and [mail.deliveredto] or
                     [m[1] for m in mail.all_to])
@@ -390,7 +397,7 @@ class Activity:
                     activity = cls.create([base_values])
 
                 # Add all the possible attachments from the mil to the activity
-                msg = msg_from_string(mail.email_file)
+                msg = msg_from_string(mail.mail_file)
                 attachs = ElectronicMail.get_attachments(msg)
                 if attachs:
                     values = []
