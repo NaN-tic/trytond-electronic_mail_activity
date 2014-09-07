@@ -3,11 +3,13 @@
 this repository contains the full copyright notices and license terms. -->
 <data>
     <xpath expr="/form/notebook/page[@id='user']/notebook" position="after" >
-        <group id="activity_mail_info" colspan="4" col="4">
+        <group id="activity_mail_info" string="Activity SMTP info" colspan="4" col="6">
             <label name="smtp_server"/>
             <field name="smtp_server"/>
             <label name="mailbox"/>
             <field name="mailbox"/>
+            <label name="add_signature"/>
+            <field name="add_signature"/>
         </group>
     </xpath>
 </data>

@@ -37,8 +37,6 @@ class Activity:
             'invisible': Eval('type') != 'email'
             }, depends=['type'], ondelete='CASCADE')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
-    signature = fields.Boolean('Use Signature', help='The Plain signature '
-        'from the User details will be appened to the mail.')
     #related_activity = fields.Many2One('activity.activity', 'Related activity',
     #    domain=[('id', 'in', Eval('resource.activities', []))], depends=['resource'])
     related_activity = fields.Many2One('activity.activity', 'Related activity')
@@ -234,9 +232,9 @@ class Activity:
                 formataddr((_make_header(c.name), c.email))
                 for c in self.contacts])
         message['subject'] = _make_header(self.subject)
-        plain = self.description
-        if self.signature and user.signature:
-            signature = user.signature.encode("utf-8")
+        plain = self.description.encode('utf-8')
+        if user.add_signature and user.signature:
+            signature = user.signature.encode('utf-8')
             plain = '%s\n--\n%s' % (plain, signature)
         body = MIMEMultipart('alternative')
         body.attach(MIMEText(plain, 'plain', _charset='utf-8'))
