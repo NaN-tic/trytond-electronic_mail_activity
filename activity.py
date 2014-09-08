@@ -80,11 +80,11 @@ class Activity:
         if self.mail and self.mail.reference:
             result = self.mail.reference
         elif self.related_activity and self.related_activity.mail:
-            result += self.related_activity.mail.message_id or ""
             if self.related_activity.mail.reference:
                 result += self.related_activity.mail.reference or ""
             else:
                 result += self.related_activity.mail.in_reply_to or ""
+            result += self.related_activity.mail.message_id or ""
         return result
 
     @classmethod
