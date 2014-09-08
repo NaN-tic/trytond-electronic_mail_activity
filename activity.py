@@ -231,6 +231,8 @@ class Activity:
         message['Cc'] = ",".join([
                 formataddr((_make_header(c.name), c.email))
                 for c in self.contacts])
+        message['Bcc'] = (user and user.smtp_server and
+            user.smtp_server.smtp_email or "")
         message['Subject'] = _make_header(self.subject)
         plain = self.description.encode('utf-8')
         if user.add_signature and user.signature:
