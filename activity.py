@@ -263,10 +263,43 @@ class Activity:
         return message
 
     @classmethod
+    def get_contact_mechanism(cls, email, parties=None, active=True):
+        """ Get party and contact_mechanism from email.
+                With the possibility to restic some party list
+                and to search for the non active parties
+        """
+        ContactMechanism = Pool().get('party.contact_mechanism')
+        PartyRelation = Pool().get('party.relation')
+        domain = [
+            ('type', '=', 'email'),
+            ('active', '=', active),
+            ('value', '=', email),
+            ]
+        if parties:
+            domain.append(
+                ('party', 'in', parties),
+                )
+        contact_mechanisms = ContactMechanism.search(domain)
+        if contact_mechanisms:
+            if len(contact_mechanisms) == 1:
+                return contact_mechanisms[0]
+            contact_mechanisms_copy = contact_mechanisms
+            for contact_mechanism in contact_mechanisms:
+                party_relation = PartyRelation.search([
+                    ('from_', '=', contact_mechanism.party.id),
+                    ])
+                if party_relation:
+                    contact_mechanisms_copy.remove(contact_mechanism)
+            if not contact_mechanisms_copy or len(contact_mechanisms_copy) > 1:
+                return contact_mechanisms[0]
+            if len(contact_mechanisms_copy) == 1:
+                return contact_mechanisms_copy[0]
+        return None
+
+    @classmethod
     def create_activity(cls, received_mails):
         IMAPServer = Pool().get('imap.server')
         CompanyEmployee = Pool().get('company.employee')
-        ContactMechanism = Pool().get('party.contact_mechanism')
         ElectronicMail = Pool().get('electronic.mail')
         Attachment = Pool().get('ir.attachment')
 
@@ -287,58 +320,43 @@ class Activity:
                 deliveredto = (mail.deliveredto and [mail.deliveredto] or
                     [m[1] for m in mail.all_to])
                 deliveredto = ElectronicMail.validate_emails(deliveredto)
-                contact_mechanisms = None
                 if deliveredto:
                     employees = CompanyEmployee.search([])
-                    party = [p.party.id for p in employees]
-                    contact_mechanisms = ContactMechanism.search([
-                            ('party', 'in', party),
-                            ('type', '=', 'email'),
-                            ('active', '=', True),
-                            ('value', 'in', deliveredto)
-                            ])
-                if contact_mechanisms:
-                    mail_employee = [c.value for c in contact_mechanisms]
-                    party_employee = [c.party.id for c in contact_mechanisms]
-                    employees = CompanyEmployee.search([
-                        ('party', 'in', party_employee)
+                    parties = [p.party.id for p in employees]
+                    contact = cls.get_contact_mechanism(deliveredto[0],
+                        parties)
+                employee = None
+                if contact:
+                    emails_employee = [c.value
+                        for c in contact.party.contact_mechanisms
+                        if c.type == 'email']
+                    employee = CompanyEmployee.search([
+                        ('party', '=', contact.party.id)
                         ])
-                    if employees:
-                        employee = employees[0]
-                else:
+                if not employee:
                     employee = server and server.employee or None
-                    mail_employee = (server and server.employee and
+                    emails_employee = (server and server.employee and
                         [server.employee.party.mail] or [])
+                else:
+                    employee = employee[0]
 
                 # Search for the parties with that mails, to attach in the
                 # contacts and main contact
                 mail_from = ElectronicMail.validate_emails(
                     [parseaddr(mail.from_)[1]])
-                main_contact_mechanism = ContactMechanism.search([
-                        ('type', '=', 'email'),
-                        ('active', '=', True),
-                        ('value', 'in', mail_from)
-                        ])
-                main_contact = (main_contact_mechanism and
-                    main_contact_mechanism[0].party or False)
+                contact = cls.get_contact_mechanism(mail_from[0])
+                main_contact = contact and contact.party or False
 
-                mail_to = []
+                email_to = []
                 for to in mail.all_to:
-                    if to[1] not in mail_employee:
-                        mail_to.append(to[1])
-                mail_cc = mail_to + [m[1] for m in mail.all_cc]
-                mail_cc = ElectronicMail.validate_emails(mail_cc)
-                contacts_mechanism = ContactMechanism.search([
-                        ('type', '=', 'email'),
-                        ('active', '=', True),
-                        ('value', 'in', mail_cc)
-                        ])
-                contacts = [m.party.id for m in contacts_mechanism]
-
-                # TODO: Control if the mail is from the contact or the main
-                #       party. We can have the mail twice. In the party form
-                #       for the invoice and other mails send and in the Related
-                #       contact.
+                    if to[1] not in emails_employee:
+                        email_to.append(to[1])
+                email_cc = email_to + [m[1] for m in mail.all_cc]
+                emails_cc = ElectronicMail.validate_emails(email_cc)
+                contacts = []
+                for email_cc in emails_cc:
+                    contact = cls.get_contact_mechanism(email_cc)
+                    contacts.append(contact.party.id)
 
                 # Search for the possible activity referenced to add in the
                 # same resource.
