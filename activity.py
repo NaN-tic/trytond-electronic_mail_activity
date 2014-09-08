@@ -163,6 +163,8 @@ class Activity:
                     cls.raise_user_error('no_valid_mail',
                         (activity.main_contact.mail,
                             activity.main_contact.name))
+        if user and user.smtp_server and user.smtp_server.smtp_email:
+            emails.append(user.smtp_server.smtp_email)
 
         # Send the mail
         # TODO: Create a send_mail function in SMTP module to control there
