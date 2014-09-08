@@ -9,11 +9,11 @@ class TestCase(unittest.TestCase):
     'Test module'
 
     def setUp(self):
-        trytond.tests.test_tryton.install_module('<module>')
+        trytond.tests.test_tryton.install_module('electronic_mail_activity')
 
     def test0005views(self):
         'Test views'
-        test_view('<module>')
+        test_view('electronic_mail_activity')
 
     def test0006depends(self):
         'Test depends'
@@ -24,7 +24,7 @@ def suite():
     suite = trytond.tests.test_tryton.suite()
     suite.addTests(unittest.TestLoader().loadTestsFromTestCase(TestCase))
     # TODO: remove if no scenario needed.
-    #suite.addTests(doctest.DocFileSuite('scenario_<module>.rst',
+    #suite.addTests(doctest.DocFileSuite('scenario_electronic_mail_activity.rst',
     #        setUp=doctest_dropdb, tearDown=doctest_dropdb, encoding='utf-8',
     #        optionflags=doctest.REPORT_ONLY_FIRST_FAILURE))
     return suite
