@@ -384,11 +384,11 @@ class Activity:
                     # Search if the activity have resource to use for activity
                     # that create now.
                     referenced_mails = [r.id for r in referenced_mail]
-                    activity = cls.search([
+                    activities = cls.search([
                         ('mail', 'in', referenced_mails)
                         ])
-                    if activity:
-                        resource = activity[0].resource
+                    if activities:
+                        resource = activities[0].resource
                         party = resource and resource.party or party
 
                 # Create the activity
@@ -406,7 +406,7 @@ class Activity:
                     }
                 values = base_values.copy()
                 if resource:
-                    values['resource'] = resource
+                    values['resource'] = str(resource)
                 if party:
                     values['party'] = party.id
                 if main_contact:
