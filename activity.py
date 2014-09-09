@@ -147,8 +147,8 @@ class Activity:
         # If there are no user in main contact or in contacts, we creat And
         # activity for internal reason and we send the mail to the employee.
         emails = []
-        email_to = activity.main_contact.email or activity.employee.party.email
-        name_to = activity.main_contact.name or activity.employee.party.name
+        email_to = activity.main_contact and activity.main_contact.email or activity.employee.party.email
+        name_to = activity.main_contact and activity.main_contact.name or activity.employee.party.name
         emails_to = ElectronicMail.validate_emails([email_to])
         if emails_to:
             emails.extend(emails_to)
@@ -324,6 +324,7 @@ class Activity:
                 deliveredto = (mail.deliveredto and [mail.deliveredto] or
                     [m[1] for m in mail.all_to])
                 deliveredto = ElectronicMail.validate_emails(deliveredto)
+                contact = None
                 if deliveredto:
                     employees = CompanyEmployee.search([])
                     parties = [p.party.id for p in employees]
@@ -360,7 +361,8 @@ class Activity:
                 contacts = []
                 for email_cc in emails_cc:
                     contact = cls.get_contact_mechanism(email_cc)
-                    contacts.append(contact.party.id)
+                    if contact:
+                        contacts.append(contact.party.id)
 
                 # Search for the possible activity referenced to add in the
                 # same resource.
