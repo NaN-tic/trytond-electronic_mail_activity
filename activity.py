@@ -321,15 +321,20 @@ class Activity:
                 if activity_exist:
                     continue
                 # Take the possible employee, if not the default.
-                deliveredto = (mail.deliveredto and [mail.deliveredto] or
-                    [m[1] for m in mail.all_to])
-                deliveredto = ElectronicMail.validate_emails(deliveredto)
+                deliveredtos = mail.deliveredto and [mail.deliveredto] or []
+                deliveredtos.extend([m[1] for m in mail.all_to])
+                deliveredtos.extend([m[1] for m in mail.all_cc])
+                deliveredtos = ElectronicMail.validate_emails(deliveredtos)
                 contact = None
-                if deliveredto:
+                if deliveredtos:
                     employees = CompanyEmployee.search([])
                     parties = [p.party.id for p in employees]
-                    contact = cls.get_contact_mechanism(deliveredto[0],
-                        parties)
+                    contacts = []
+                    for deliveredto in deliveredtos:
+                        cm = cls.get_contact_mechanism(deliveredto, parties)
+                        if cm:
+                            contacts.append(cm)
+                    contact = contacts and contacts[0] or None
                 employee = None
                 if contact:
                     emails_employee = [c.value
