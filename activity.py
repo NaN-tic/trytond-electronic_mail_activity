@@ -252,7 +252,7 @@ class Activity:
             for attach in attachs:
                 filename = attach.name
                 data = attach.data
-                content_type, = mimetypes.guess_type(filename)
+                content_type, encoding = mimetypes.guess_type(filename)
                 maintype, subtype = (
                     content_type or 'application/octet-stream'
                     ).split('/', 1)
