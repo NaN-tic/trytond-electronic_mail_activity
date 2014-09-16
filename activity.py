@@ -353,7 +353,7 @@ class Activity:
                 # Search for the parties with that mails, to attach in the
                 # contacts and main contact
                 mail_from = ElectronicMail.validate_emails(
-                    [parseaddr(mail.from_)[1]])
+                    [parseaddr(mail.from_.replace(',', ' '))[1]])
                 contact = cls.get_contact_mechanism(mail_from[0])
                 main_contact = contact and contact.party or False
 
