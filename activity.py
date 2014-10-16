@@ -161,7 +161,7 @@ class Activity:
                     emails.extend(emails_cc)
                 else:
                     cls.raise_user_error('no_valid_mail',
-                        (activity.main_contact.mail,
+                        (activity.main_contact.email,
                             activity.main_contact.name))
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
