@@ -102,7 +102,7 @@ class Activity:
             for activity in activities:
                 if activity.mail and activity.mail.flag_received:
                     cls.raise_user_error('mail_received', activity.id)
-                cls.send_email(activity, user)
+                cls.send_mail(activity, user)
 
     @classmethod
     @ModelView.button_action('electronic_mail_activity.wizard_replymail')
@@ -122,7 +122,7 @@ class Activity:
             cls.raise_user_error('no_smtp_server', user.name)
 
     @classmethod
-    def send_email(cls, activity, user):
+    def send_mail(cls, activity, user):
         """
         Send out the given email using the SMTP_CLIENT if configured in the
         Tryton Server configuration
@@ -140,7 +140,7 @@ class Activity:
             # Prepare the mail strucuture
             mimetype_mail = activity.create_mimetype(user)
             # Create the mail
-            mail = ElectronicMail.create_from_email(mimetype_mail,
+            mail = ElectronicMail.create_from_mail(mimetype_mail,
                 user.mailbox)
 
         # Before to send, control if all mails are corrects
