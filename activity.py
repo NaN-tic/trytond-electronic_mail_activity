@@ -306,6 +306,7 @@ class Activity:
         CompanyEmployee = Pool().get('company.employee')
         ElectronicMail = Pool().get('electronic.mail')
         Attachment = Pool().get('ir.attachment')
+        ActivityType = Pool().get('activity.type')
 
         values = []
         attachs = {}
@@ -398,11 +399,18 @@ class Activity:
                         resource = activities[0].resource
                         party = resource and resource.party or party
 
+                # TODO: Search for a better default.
+                # By the moment search the first activity type with the 0 in
+                # sequence
+                activity_types = ActivityType.search([
+                    ('sequence', '=', 0)
+                    ])
+                activity_type = activity_types and activity_types[0] or None
+
                 # Create the activity
                 base_values = {
                     'subject': mail.subject,
-                    'type': 'email',
-                    'direction': 'incoming',
+                    'activity_type': activity_type,
                     'employee': employee.id,
                     'dtstart': datetime.datetime.now(),
                     'description': (mail.body_plain
