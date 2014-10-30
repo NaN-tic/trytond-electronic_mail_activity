@@ -33,9 +33,7 @@ class Activity:
                 ('id', 'in', Eval('allowed_contacts', [])),
                 ], depends=['allowed_contacts'])
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
-        states={
-            'invisible': Eval('type') != 'email'
-            }, depends=['type'], ondelete='CASCADE')
+            ondelete='CASCADE')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
     #related_activity = fields.Many2One('activity.activity', 'Related activity',
     #    domain=[('id', 'in', Eval('resource.activities', []))], depends=['resource'])
@@ -58,10 +56,7 @@ class Activity:
                 })
         cls._buttons.update({
             'new': {},
-            'reply': {
-                'invisible': (Bool(Eval('type') != 'email') | (
-                        Bool(Eval('type') == 'email') & ~Eval('have_mail'))),
-                },
+            'reply': {},
             })
 
     @property
