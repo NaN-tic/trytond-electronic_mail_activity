@@ -235,9 +235,7 @@ class Activity:
         if user.add_signature and user.signature:
             signature = user.signature.encode('utf-8')
             plain = '%s\n--\n%s' % (plain, signature)
-        body = MIMEMultipart('alternative')
-        body.attach(MIMEText(plain, 'plain', _charset='utf-8'))
-        message.attach(body)
+        message.attach(MIMEText(plain, 'plain', _charset='utf-8'))
 
         # Attach reports
         attachs = Attachment.search([
