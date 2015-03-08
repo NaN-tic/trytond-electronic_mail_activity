@@ -29,9 +29,6 @@ __metaclass__ = PoolMeta
 class Activity:
     __name__ = 'activity.activity'
 
-    main_contact = fields.Many2One('party.party', 'Main Contact', domain=[
-                ('id', 'in', Eval('allowed_contacts', [])),
-                ], depends=['allowed_contacts'])
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
             ondelete='CASCADE')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
@@ -142,8 +139,8 @@ class Activity:
         # If there are no user in main contact or in contacts, we creat And
         # activity for internal reason and we send the mail to the employee.
         emails = []
-        email_to = activity.main_contact and activity.main_contact.email or activity.employee.party.email
-        name_to = activity.main_contact and activity.main_contact.name or activity.employee.party.name
+        email_to = activity.contacts and activity.contacts[0].email or activity.employee.party.email
+        name_to = activity.contacts and activity.contacts[0].name or activity.employee.party.name
         emails_to = ElectronicMail.validate_emails([email_to])
         if emails_to:
             emails.extend(emails_to)
@@ -156,8 +153,8 @@ class Activity:
                     emails.extend(emails_cc)
                 else:
                     cls.raise_user_error('no_valid_mail',
-                        (activity.main_contact.email,
-                            activity.main_contact.name))
+                        (activity.contacts[0].email,
+                            activity.contacts[0].name))
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
@@ -217,13 +214,13 @@ class Activity:
         if self.related_activity:
             message['In-Reply-To'] = self.in_reply_to
             message['Reference'] = self.reference
-        message['From'] = (self.main_contact and formataddr((
+        message['From'] = (self.employee and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
             formataddr((user.employee.party.name, user.employee.party.email)))
-        message['To'] = (self.main_contact and formataddr((
-                    _make_header(self.main_contact.name),
-                    self.main_contact.email)) or
+        message['To'] = (self.contacts and formataddr((
+                    _make_header(self.contacts[0].name),
+                    self.contacts[0].email)) or
             formataddr((self.employee.party.name, self.employee.party.email)))
         message['Cc'] = ",".join([
                 formataddr((_make_header(c.name), c.email))
