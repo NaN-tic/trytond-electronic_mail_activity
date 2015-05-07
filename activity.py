@@ -337,7 +337,7 @@ class Activity:
                 if not employee:
                     employee = server and server.employee or None
                     emails_employee = (server and server.employee and
-                        [server.employee.party.mail] or [])
+                        [server.employee.party.email] or [])
                 else:
                     employee = employee[0]
 
@@ -399,7 +399,7 @@ class Activity:
 
                 # Create the activity
                 base_values = {
-                    'subject': mail.subject,
+                    'subject': mail.subject or "NONE",
                     'activity_type': activity_type,
                     'employee': employee.id,
                     'dtstart': datetime.datetime.now(),
