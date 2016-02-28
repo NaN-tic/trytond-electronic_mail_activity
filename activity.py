@@ -141,16 +141,16 @@ class Activity:
         emails = []
         email_to = activity.contacts and activity.contacts[0].email or activity.employee.party.email
         name_to = activity.contacts and activity.contacts[0].name or activity.employee.party.name
-        emails_to = ElectronicMail.validate_emails([email_to])
+        emails_to = ElectronicMail.validate_emails(email_to)
         if emails_to:
-            emails.extend(emails_to)
+            emails.append(emails_to)
         else:
             cls.raise_user_error('no_valid_mail', (email_to, name_to))
         if activity.contacts:
             for c in activity.contacts:
-                emails_cc = ElectronicMail.validate_emails([c.email])
+                emails_cc = ElectronicMail.validate_emails(c.email)
                 if emails_cc:
-                    emails.extend(emails_cc)
+                    emails.append(emails_cc)
                 else:
                     cls.raise_user_error('no_valid_mail',
                         (activity.contacts[0].email,
@@ -344,8 +344,8 @@ class Activity:
                 # Search for the parties with that mails, to attach in the
                 # contacts and main contact
                 mail_from = ElectronicMail.validate_emails(
-                    [parseaddr(mail.from_.replace(',', ' '))[1]])
-                contact = cls.get_contact_mechanism(mail_from[0])
+                    parseaddr(mail.from_.replace(',', ' '))[1])
+                contact = cls.get_contact_mechanism(mail_from)
                 main_contact = contact and contact.party or False
 
                 email_to = []
