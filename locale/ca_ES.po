@@ -1,0 +1,76 @@
+#
+msgid ""
+msgstr "Content-Type: text/plain; charset=utf-8\n"
+
+msgctxt "error:activity.activity:"
+msgid "The \"%s\" of the party \"%s\" it is not correct."
+msgstr "El \"%s\" del tercer \"%s\" no es correcte."
+
+msgctxt "error:activity.activity:"
+msgid "The activity (id: \"%s\") is a mail received so you ca not send."
+msgstr "Aquesta activitat (id: \"%s\") es un correu rebut i no el pot enviar."
+
+msgctxt "error:activity.activity:"
+msgid ""
+"The user \"%s\", do not have the SMTP server deffined. Without it, it is no "
+"possible to send mails."
+msgstr ""
+"L'usuari \"%s\", no té definit un servidor SMTP. Sense ella, no es pot "
+"enviar correu."
+
+msgctxt "error:activity.activity:"
+msgid ""
+"The user \"%s\", do not have the mailbox server deffined. Without it, it is "
+"no possible to send mails."
+msgstr ""
+"L'usuari \"%s\", no té definit una bústia de correu. Sense ella, no es pot "
+"enviar correu."
+
+msgctxt "field:activity.activity,have_mail:"
+msgid "Have mail"
+msgstr "Es un correu"
+
+msgctxt "field:activity.activity,mail:"
+msgid "Related Mail"
+msgstr "Correu relacionat"
+
+msgctxt "field:activity.activity,related_activity:"
+msgid "Related activity"
+msgstr "Activitat relacionada"
+
+msgctxt "field:imap.server,employee:"
+msgid "Default Employee"
+msgstr "Empleat per defecte"
+
+msgctxt "field:res.user,add_signature:"
+msgid "Use Signature"
+msgstr "Utilitza la signatura"
+
+msgctxt "field:res.user,mailbox:"
+msgid "Mailbox"
+msgstr "Bústia de correu"
+
+msgctxt "field:res.user,smtp_server:"
+msgid "SMTP Server"
+msgstr "Servidor SMTP"
+
+msgctxt "help:res.user,add_signature:"
+msgid "The Plain signature from the User details will be appened to the mail."
+msgstr ""
+"La signatura en text pla pels detalls de l'usuari que es mostrarà al correu."
+
+msgctxt "model:ir.action,name:wizard_replymail"
+msgid "Reply Mail"
+msgstr "Respon correu"
+
+msgctxt "view:activity.activity:"
+msgid "Reply Mail"
+msgstr "Respon correu"
+
+msgctxt "view:activity.activity:"
+msgid "Send Mail"
+msgstr "Envia correu"
+
+msgctxt "view:res.user:"
+msgid "Activity SMTP info"
+msgstr "Informació activitat SMTP"
