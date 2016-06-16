@@ -1,4 +1,6 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0"?>
+<!-- The COPYRIGHT file at the top level of this repository contains the full
+     copyright notices and license terms. -->
 <tryton>
     <data>
         <record model="ir.action.wizard" id="wizard_replymail">
@@ -12,7 +14,6 @@
             <field name="inherit" ref="activity.activity_activity_form_view"/>
             <field name="name">activity_activity_form</field>
         </record>
-
         <record model="ir.ui.view" id="activity_activity_tree_view">
             <field name="model">activity.activity</field>
             <field name="inherit" ref="activity.activity_activity_tree_view"/>
