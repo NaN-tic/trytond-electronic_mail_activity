@@ -158,38 +158,14 @@ class Activity:
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
-        # Send the mail
-        # TODO: Create a send_mail function in SMTP module to control there
-        # the possible errors. The "electronic_mail_template/template.py" will
-        # use it to. And other possible modules will have a function.
-        #   SMTP.send_mail(server, from, cc, email)
-        # This method (sendmail in the smtplib) may raise the following
-        # exceptions:
-        # SMTPRecipientsRefused
-        #     All recipients were refused. Nobody got the mail. The recipients
-        #       attribute of the exception object is a dictionary with
-        #       information about the refused recipients (like the one returned
-        #       when at least one recipient was accepted).
-        # SMTPHeloError
-        #     The server did not reply properly to the HELO greeting.
-        # SMTPSenderRefused
-        #     The server did not accept the from_addr.
-        # SMTPDataError
-        #     The server replied with an unexpected error code (other than a
-        #       refusal of a recipient).
-        try:
-            server = SMTP.get_smtp_server(user.smtp_server)
-            mail_str = ElectronicMail._get_mail(mail)
-            server.sendmail(mail.from_, emails, mail_str)
-            server.quit()
-            ElectronicMail.write([mail], {
-                    'flag_send': True,
-                    })
-            cls.write([activity], {
-                    'mail': mail.id,
-                    })
-        except:
-            cls.raise_user_error('smtp_error')
+        mail_str = ElectronicMail._get_mail(mail)
+        user.smtp_server.send_mail(mail.from_, emails, mail_str)
+        ElectronicMail.write([mail], {
+                'flag_send': True,
+                })
+        cls.write([activity], {
+                'mail': mail.id,
+                })
 
         logging.getLogger('Activity Mail').info(
             'Send email %s from activity %s (to %s)' % (mail.id, activity.id,
