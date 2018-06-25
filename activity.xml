@@ -19,5 +19,28 @@
             <field name="inherit" ref="activity.activity_activity_tree_view"/>
             <field name="name">activity_activity_tree</field>
         </record>
+
+        <record model="ir.model.button" id="electronic_mail_new_button">
+            <field name="name">new</field>
+            <field name="string">New</field>
+            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+        </record>
+        <record model="ir.model.button-res.group"
+            id="activity_new_button_group">
+            <field name="button" ref="electronic_mail_new_button"/>
+            <field name="group" ref="electronic_mail.group_email_user"/>
+        </record>
+
+        <record model="ir.model.button" id="electronic_mail_reply_button">
+            <field name="name">reply</field>
+            <field name="string">Reply</field>
+            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+        </record>
+        <record model="ir.model.button-res.group"
+            id="activity_reply_button_group">
+            <field name="button" ref="electronic_mail_reply_button"/>
+            <field name="group" ref="electronic_mail.group_email_user"/>
+        </record>
+
     </data>
 </tryton>
