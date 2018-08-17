@@ -2,7 +2,6 @@
 # copyright notices and license terms.
 from trytond.pool import Pool, PoolMeta
 from trytond.model import fields, ModelView
-from trytond.pyson import Eval, Bool
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from email.utils import parseaddr, formataddr, formatdate, make_msgid
@@ -23,11 +22,11 @@ except ImportError:
     raise Exception(message)
 
 __all__ = ['Activity', 'ActivityReplyMail']
-__metaclass__ = PoolMeta
 
 
 class Activity:
     __name__ = 'activity.activity'
+    __metaclass__ = PoolMeta
 
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
             ondelete='CASCADE')
@@ -124,7 +123,6 @@ class Activity:
         :param type_: If the mail to send is new or a reply
         """
         ElectronicMail = Pool().get('electronic.mail')
-        SMTP = Pool().get('smtp.server')
 
         if activity.mail:
             mail = activity.mail
@@ -424,6 +422,7 @@ class Activity:
 class ActivityReplyMail(Wizard):
     'Activity Reply Mail'
     __name__ = 'activity.activity.replymail'
+    __metaclass__ = PoolMeta
     start_state = 'open_'
     open_ = StateAction('activity.act_activity_activity')
 
