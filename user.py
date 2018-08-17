@@ -4,10 +4,9 @@ from trytond.pool import PoolMeta
 from trytond.model import fields
 
 __all__ = ['User']
-__metaclass__ = PoolMeta
 
 
-class User:
+class User(metaclass=PoolMeta):
     __name__ = "res.user"
 
     smtp_server = fields.Many2One('smtp.server', 'SMTP Server',

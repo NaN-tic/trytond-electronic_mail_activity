@@ -5,7 +5,7 @@ from trytond.model import fields, ModelView
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from email.utils import parseaddr, formataddr, formatdate, make_msgid
-from email import Encoders
+from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -24,9 +24,8 @@ except ImportError:
 __all__ = ['Activity', 'ActivityReplyMail']
 
 
-class Activity:
+class Activity(metaclass=PoolMeta):
     __name__ = 'activity.activity'
-    __metaclass__ = PoolMeta
 
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
             ondelete='CASCADE')
@@ -222,7 +221,7 @@ class Activity:
                     ).split('/', 1)
                 attachment = MIMEBase(maintype, subtype)
                 attachment.set_payload(data)
-                Encoders.encode_base64(attachment)
+                encoders.encode_base64(attachment)
                 attachment.add_header(
                     'Content-Disposition', 'attachment', filename=filename)
                 attachment.add_header(
@@ -274,7 +273,7 @@ class Activity:
 
         values = []
         attachs = {}
-        for server_id, mails in received_mails.iteritems():
+        for server_id, mails in list(received_mails.items()):
             servers = IMAPServer.browse([server_id])
             server = servers and servers[0] or None
             for mail in mails:
@@ -411,7 +410,7 @@ class Activity:
                                 })
                     try:
                         Attachment.create(values)
-                    except Exception, e:
+                    except Exception as e:
                         logging.getLogger('Activity Mail').info(
                             'The mail (%s) has attachments but they are not '
                             'possible to attach to the activity (%s).\n\n%s' %
@@ -419,10 +418,9 @@ class Activity:
         return mails
 
 
-class ActivityReplyMail(Wizard):
+class ActivityReplyMail(Wizard, metaclass=PoolMeta):
     'Activity Reply Mail'
     __name__ = 'activity.activity.replymail'
-    __metaclass__ = PoolMeta
     start_state = 'open_'
     open_ = StateAction('activity.act_activity_activity')
 

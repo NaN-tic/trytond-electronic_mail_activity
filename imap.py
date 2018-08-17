@@ -4,10 +4,9 @@ from trytond.pool import Pool, PoolMeta
 from trytond.model import fields
 
 __all__ = ['IMAPServer']
-__metaclass__ = PoolMeta
 
 
-class IMAPServer:
+class IMAPServer(metaclass=PoolMeta):
     __name__ = 'imap.server'
 
     employee = fields.Many2One('company.employee', 'Default Employee')
