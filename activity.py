@@ -14,6 +14,9 @@ from trytond.modules.electronic_mail.electronic_mail import _make_header,\
     msg_from_string
 import logging
 import datetime
+from trytond.i18n import gettext
+from trytond.exceptions import UserError
+
 try:
     from html2text import html2text
 except ImportError:
@@ -37,18 +40,6 @@ class Activity(metaclass=PoolMeta):
     @classmethod
     def __setup__(cls):
         super(Activity, cls).__setup__()
-        cls._error_messages.update({
-                'mail_received': ('The activity (id: "%s") is a mail received '
-                    'so you ca not send.'),
-                'no_smtp_server': ('The user "%s", do not have the SMTP '
-                    'server deffined. Without it, it is no possible to send '
-                    'mails.'),
-                'no_mailbox': ('The user "%s", do not have the mailbox '
-                    'server deffined. Without it, it is no possible to send '
-                    'mails.'),
-                'no_valid_mail': ('The "%s" of the party "%s" it is not '
-                    'correct.'),
-                })
         cls._buttons.update({
             'new': {},
             'reply': {},
@@ -91,7 +82,9 @@ class Activity(metaclass=PoolMeta):
         if user:
             for activity in activities:
                 if activity.mail and activity.mail.flag_received:
-                    cls.raise_user_error('mail_received', activity.id)
+                    raise UserError(gettext(
+                        'electronic_mail_activity.mail_received',
+                            activity=activity.id))
                 cls.send_mail(activity, user)
 
     @classmethod
@@ -107,9 +100,11 @@ class Activity(metaclass=PoolMeta):
         if user and user.smtp_server:
             if user.mailbox:
                 return user
-            cls.raise_user_error('no_mailbox', user.name)
+            raise UserError(gettext(
+            'electronic_mail_activity.no_mailbox',user=user.name))
         else:
-            cls.raise_user_error('no_smtp_server', user.name)
+            raise UserError(gettext(
+            'electronic_mail_activity.no_smtp_server',user=user.name))
 
     @classmethod
     def send_mail(cls, activity, user):
@@ -142,16 +137,19 @@ class Activity(metaclass=PoolMeta):
         if emails_to:
             emails.append(emails_to)
         else:
-            cls.raise_user_error('no_valid_mail', (email_to, name_to))
+            raise UserError(gettext(
+                'electronic_mail_activity.no_valid_mail',
+                    email=email_to, party=name_to))
         if activity.contacts:
             for c in activity.contacts:
                 emails_cc = ElectronicMail.validate_emails(c.email)
                 if emails_cc:
                     emails.append(emails_cc)
                 else:
-                    cls.raise_user_error('no_valid_mail',
-                        (activity.contacts[0].email,
-                            activity.contacts[0].name))
+                    raise UserError(gettext(
+                        'electronic_mail_activity.no_valid_mail',
+                            email=activity.contacts[0].email,
+                            party=activity.contacts[0].name))
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
