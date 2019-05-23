@@ -5,13 +5,12 @@ from trytond.model import fields, ModelView
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from email.utils import parseaddr, formataddr, formatdate, make_msgid
-from email import encoders
+from email import encoders, message_from_bytes
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 import mimetypes
-from trytond.modules.electronic_mail.electronic_mail import _make_header,\
-    msg_from_string
+from trytond.modules.electronic_mail.electronic_mail import _make_header
 import logging
 import datetime
 from trytond.i18n import gettext
@@ -395,7 +394,7 @@ class Activity(metaclass=PoolMeta):
                     activity = cls.create([base_values])
 
                 # Add all the possible attachments from the mil to the activity
-                msg = msg_from_string(mail.mail_file)
+                msg = message_from_bytes(mail.mail_file)
                 attachs = ElectronicMail.get_attachments(msg)
                 if attachs:
                     values = []
