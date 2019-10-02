@@ -10,8 +10,8 @@
             <label name="mail" />
             <field name="mail" />
             <group colspan="2" col="2" id="buttons">
-                <button name="new" string="Send Mail" icon="tryton-email"/>
-                <button name="reply" string="Reply Mail" icon="tryton-forward"/>
+                <button name="new"/>
+                <button name="reply"/>
                 <field name="have_mail" invisible="1"/>
             </group>
         </group>

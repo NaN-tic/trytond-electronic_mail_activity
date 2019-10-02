@@ -40,8 +40,12 @@ class Activity(metaclass=PoolMeta):
     def __setup__(cls):
         super(Activity, cls).__setup__()
         cls._buttons.update({
-            'new': {},
-            'reply': {},
+            'new': {
+                'icon': 'tryton-email',
+            },
+            'reply': {
+                'icon': 'tryton-forward'
+            },
             })
 
     @property
