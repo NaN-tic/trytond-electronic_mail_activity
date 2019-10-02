@@ -4,16 +4,13 @@ this repository contains the full copyright notices and license terms. -->
 <tryton>
     <data grouped="1">
     <record model="ir.message" id="mail_received">
-        <field name="text">The activity (id: "%(activity)s") is a mail received
-                so you ca not send.</field>
+        <field name="text">The activity (id: "%(activity)s") is a mail received so you ca not send.</field>
     </record>
     <record model="ir.message" id="no_smtp_server">
-        <field name="text">The user "%(user)s", do not have the SMTP
-            server deffined. Without it, it is no possible to send mails.</field>
+        <field name="text">The user "%(user)s", do not have the SMTP server deffined. Without it, it is no possible to send mails.</field>
     </record>
     <record model="ir.message" id="no_mailbox">
-        <field name="text">The user "%(user)s", do not have the mailbox
-            server deffined. Without it, it is no possible to send mails.</field>
+        <field name="text">The user "%(user)s", do not have the mailbox server deffined. Without it, it is no possible to send mails.</field>
     </record>
     <record model="ir.message" id="no_valid_mail">
         <field name="text">The "%(mail)s" of the party "%(party)s" it is not correct.</field>
