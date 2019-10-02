@@ -3,8 +3,8 @@
      copyright notices and license terms. -->
 <data>
     <xpath expr="/tree/field[@name='state']" position="after">
-        <button name="new" string="Send Mail"/>
-        <button name="reply" string="Reply Mail"/>
+        <button name="new"/>
+        <button name="reply"/>
         <field name="have_mail" tree_invisible="1"/>
     </xpath>
 </data>

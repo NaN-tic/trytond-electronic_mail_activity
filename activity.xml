@@ -22,7 +22,7 @@
 
         <record model="ir.model.button" id="electronic_mail_new_button">
             <field name="name">new</field>
-            <field name="string">New</field>
+            <field name="string">Send Mail</field>
             <field name="model" search="[('model', '=', 'activity.activity')]"/>
         </record>
         <record model="ir.model.button-res.group"
@@ -33,7 +33,7 @@
 
         <record model="ir.model.button" id="electronic_mail_reply_button">
             <field name="name">reply</field>
-            <field name="string">Reply</field>
+            <field name="string">Reply Mail</field>
             <field name="model" search="[('model', '=', 'activity.activity')]"/>
         </record>
         <record model="ir.model.button-res.group"
