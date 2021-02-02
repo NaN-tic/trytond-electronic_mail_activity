@@ -128,7 +128,7 @@ class Activity(metaclass=PoolMeta):
             mimetype_mail = activity.create_mimetype(user)
             # Create the mail
             mail = ElectronicMail.create_from_mail(mimetype_mail,
-                user.mailbox)
+                user.mailbox, activity)
 
         # Before to send, control if all mails are corrects
         # If there are no user in main contact or in contacts, we creat And
