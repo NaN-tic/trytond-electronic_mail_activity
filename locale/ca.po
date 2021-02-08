@@ -2,30 +2,6 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
-msgctxt "error:activity.activity:"
-msgid "The \"%s\" of the party \"%s\" it is not correct."
-msgstr "El \"%s\" del tercer \"%s\" no es correcte."
-
-msgctxt "error:activity.activity:"
-msgid "The activity (id: \"%s\") is a mail received so you ca not send."
-msgstr "Aquesta activitat (id: \"%s\") es un correu rebut i no el pot enviar."
-
-msgctxt "error:activity.activity:"
-msgid ""
-"The user \"%s\", do not have the SMTP server deffined. Without it, it is no "
-"possible to send mails."
-msgstr ""
-"L'usuari \"%s\", no té definit un servidor SMTP. Sense ella, no es pot "
-"enviar correu."
-
-msgctxt "error:activity.activity:"
-msgid ""
-"The user \"%s\", do not have the mailbox server deffined. Without it, it is "
-"no possible to send mails."
-msgstr ""
-"L'usuari \"%s\", no té definit una bústia de correu. Sense ella, no es pot "
-"enviar correu."
-
 msgctxt "field:activity.activity,have_mail:"
 msgid "Have mail"
 msgstr "Es un correu"
@@ -60,6 +36,38 @@ msgstr ""
 "La signatura en text pla pels detalls de l'usuari que es mostrarà al correu."
 
 msgctxt "model:ir.action,name:wizard_replymail"
+msgid "Reply Mail"
+msgstr "Respon correu"
+
+msgctxt "model:ir.message,text:mail_received"
+msgid "The activity (id: \"%(activity)s\") is a mail received so you ca not send."
+msgstr "Aquesta activitat (id: \"%s\") es un correu rebut i no el pot enviar."
+
+msgctxt "model:ir.message,text:no_mailbox"
+msgid ""
+"The user \"%(user)s\", do not have the mailbox server deffined. Without it, "
+"it is no possible to send mails."
+msgstr ""
+"L'usuari \"%s\", no té definit una bústia de correu. Sense ella, no es pot "
+"enviar correu."
+
+msgctxt "model:ir.message,text:no_smtp_server"
+msgid ""
+"The user \"%(user)s\", do not have the SMTP server deffined. Without it, it "
+"is no possible to send mails."
+msgstr ""
+"L'usuari \"%(user)s\", no té definit un servidor SMTP. Sense ella, no es pot"
+" enviar correu."
+
+msgctxt "model:ir.message,text:no_valid_mail"
+msgid "The \"%(mail)s\" of the party \"%(party)s\" it is not correct."
+msgstr "El \"%(mail)s\" del tercer \"%(party)s\" no es correcte."
+
+msgctxt "model:ir.model.button,string:electronic_mail_new_button"
+msgid "Send Mail"
+msgstr "Envia correu"
+
+msgctxt "model:ir.model.button,string:electronic_mail_reply_button"
 msgid "Reply Mail"
 msgstr "Respon correu"
 
