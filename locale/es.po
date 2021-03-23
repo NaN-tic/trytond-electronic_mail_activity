@@ -14,6 +14,14 @@ msgctxt "field:activity.activity,related_activity:"
 msgid "Related activity"
 msgstr "Actividad relacionada"
 
+msgctxt "field:activity.configuration,pending_mailbox:"
+msgid "Pending Mailbox"
+msgstr "Buzón Pendientes"
+
+msgctxt "field:activity.configuration,processed_mailbox:"
+msgid "Processed Mailbox"
+msgstr "Buzón Procesados"
+
 msgctxt "field:imap.server,employee:"
 msgid "Default Employee"
 msgstr "Empleado por defecto"
@@ -25,6 +33,10 @@ msgstr "Añade firma"
 msgctxt "field:res.user,mailbox:"
 msgid "Mailbox"
 msgstr "Buzón de correo"
+
+msgctxt "field:res.user,signature_html:"
+msgid "Signature"
+msgstr "Firma"
 
 msgctxt "field:res.user,smtp_server:"
 msgid "SMTP Server"
@@ -65,6 +77,10 @@ msgctxt "model:ir.message,text:no_valid_mail"
 msgid "The \"%(mail)s\" of the party \"%(party)s\" it is not correct."
 msgstr "El \"%(mail)s\" del tercero \"%(party)s\" no es correcto."
 
+msgctxt "model:ir.model.button,string:electronic_mail_guess_button"
+msgid "Guess Resource"
+msgstr "Encuentra el Recurso"
+
 msgctxt "model:ir.model.button,string:electronic_mail_new_button"
 msgid "Send Mail"
 msgstr "Envio correo"
@@ -72,6 +88,10 @@ msgstr "Envio correo"
 msgctxt "model:ir.model.button,string:electronic_mail_reply_button"
 msgid "Reply Mail"
 msgstr "Responder correo"
+
+msgctxt "selection:ir.cron,method:"
+msgid "Create Activity"
+msgstr "Crear Actividad"
 
 msgctxt "view:activity.activity:"
 msgid "Reply Mail"
