@@ -5,8 +5,8 @@ from trytond.model import fields, ModelView
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
-from email.utils import parseaddr, formataddr, formatdate, make_msgid
-from email import encoders, message_from_bytes
+from email.utils import formataddr, formatdate, make_msgid
+from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -299,17 +299,17 @@ class Activity(metaclass=PoolMeta):
     def create_activity(cls):
         pool = Pool()
         ModelData = pool.get('ir.model.data')
-        Employee = pool.get('company.employee')
         ElectronicMail = pool.get('electronic.mail')
-        Mailbox = pool.get('electronic.mail.mailbox')
         Activity = pool.get('activity.activity')
         ActivityType = pool.get('activity.type')
         ActivityConfiguration = pool.get('activity.configuration')
+
         mails = ElectronicMail.search([
                     ('mailbox', '=', ActivityConfiguration(0).pending_mailbox)
                     ], order=[('date', 'ASC'), ('id', 'ASC')])
         activity_type = ActivityType(ModelData.get_id('activity',
                 'incoming_email_type'))
+
         employee = ActivityConfiguration(0).employee
         processed_mailbox = ActivityConfiguration(0).processed_mailbox
         activities = []

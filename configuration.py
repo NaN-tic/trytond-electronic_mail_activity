@@ -1,8 +1,5 @@
-from trytond.pool import Pool, PoolMeta
-from trytond.model import fields, ModelView
-
-
-__all__ = ['Configuration']
+from trytond.pool import PoolMeta
+from trytond.model import fields
 
 
 class Configuration(metaclass=PoolMeta):
