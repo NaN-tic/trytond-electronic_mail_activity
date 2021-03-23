@@ -3,6 +3,13 @@
      copyright notices and license terms. -->
 <tryton>
     <data>
+        <record model="ir.cron" id="cron_create_activity">
+            <field name="method">activity.activity|create_activity</field>
+            <field name="active" eval="True"/>
+            <field name="interval_number" eval="1"/>
+            <field name="interval_type">days</field>
+        </record>
+
         <record model="ir.action.wizard" id="wizard_replymail">
             <field name="name">Reply Mail</field>
             <field name="wiz_name">activity.activity.replymail</field>
@@ -42,5 +49,15 @@
             <field name="group" ref="electronic_mail.group_email_user"/>
         </record>
 
+        <record model="ir.model.button" id="electronic_mail_guess_button">
+            <field name="name">guess</field>
+            <field name="string">Guess Resource</field>
+            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+        </record>
+        <record model="ir.model.button-res.group"
+            id="activity_guess_button_group">
+            <field name="button" ref="electronic_mail_guess_button"/>
+            <field name="group" ref="electronic_mail.group_email_user"/>
+        </record>
     </data>
 </tryton>

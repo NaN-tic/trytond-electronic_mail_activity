@@ -5,6 +5,7 @@
     <xpath expr="/tree/field[@name='state']" position="after">
         <button name="new"/>
         <button name="reply"/>
+        <button name="guess"/>
         <field name="have_mail" tree_invisible="1"/>
     </xpath>
 </data>

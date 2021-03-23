@@ -4,6 +4,7 @@ from trytond.pool import Pool, PoolMeta
 from trytond.model import fields, ModelView
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
+from trytond.pyson import Eval, Bool
 from email.utils import parseaddr, formataddr, formatdate, make_msgid
 from email import encoders, message_from_bytes
 from email.mime.multipart import MIMEMultipart
@@ -26,6 +27,16 @@ except ImportError:
 __all__ = ['Activity', 'ActivityReplyMail']
 
 
+class Cron(metaclass=PoolMeta):
+    __name__ = 'ir.cron'
+
+    @classmethod
+    def __setup__(cls):
+        super().__setup__()
+        cls.method.selection.extend([
+            ('activity.activity|create_activity', "Create Activity")])
+
+
 class Activity(metaclass=PoolMeta):
     __name__ = 'activity.activity'
 
@@ -40,12 +51,17 @@ class Activity(metaclass=PoolMeta):
     def __setup__(cls):
         super(Activity, cls).__setup__()
         cls._buttons.update({
-            'new': {
-                'icon': 'tryton-email',
-            },
-            'reply': {
-                'icon': 'tryton-forward'
-            },
+                'new': {
+                    'icon': 'tryton-email',
+                    },
+                'reply': {
+                    'icon': 'tryton-forward',
+                    },
+                'guess': {
+                    'icon': 'tryton-forward',
+                    'invisible': Bool(Eval('resource', -1)),
+                    'depends': ['resource'],
+                    },
             })
 
     @property
@@ -57,6 +73,10 @@ class Activity(metaclass=PoolMeta):
         return self.mail and self.mail.in_reply_to or (self.related_activity
             and self.related_activity.mail and
             self.related_activity.mail.message_id or "")
+
+    @classmethod
+    def _get_origin(cls):
+        return super()._get_origin() + ['electronic.mail']
 
     @property
     def reference(self):
@@ -94,6 +114,17 @@ class Activity(metaclass=PoolMeta):
     @ModelView.button_action('electronic_mail_activity.wizard_replymail')
     def reply(cls, activities):
         cls.check_activity_user_info()
+
+    @classmethod
+    @ModelView.button
+    def guess(cls, activities):
+        activities = cls.browse(sorted(activities, key=lambda x: x.id))
+        for activity in activities:
+            activity = cls(activity)
+            activity.guess_resource()
+            # Each activity is saved because in this list there
+            # could be a resource of another of the same list
+            activity.save()
 
     @classmethod
     def check_activity_user_info(cls):
@@ -265,158 +296,59 @@ class Activity(metaclass=PoolMeta):
         return None
 
     @classmethod
-    def create_activity(cls, received_mails):
-        IMAPServer = Pool().get('imap.server')
-        CompanyEmployee = Pool().get('company.employee')
+    def create_activity(cls):
+        pool = Pool()
+        ModelData = pool.get('ir.model.data')
+        Employee = pool.get('company.employee')
+        ElectronicMail = pool.get('electronic.mail')
+        Mailbox = pool.get('electronic.mail.mailbox')
+        Activity = pool.get('activity.activity')
+        ActivityType = pool.get('activity.type')
+        ActivityConfiguration = pool.get('activity.configuration')
+        mails = ElectronicMail.search([
+                    ('mailbox', '=', ActivityConfiguration(0).pending_mailbox)
+                    ], order=[('date', 'ASC'), ('id', 'ASC')])
+        activity_type = ActivityType(ModelData.get_id('activity',
+                'incoming_email_type'))
+        employee = ActivityConfiguration(0).employee
+        processed_mailbox = ActivityConfiguration(0).processed_mailbox
+        activities = []
+        for mail in mails:
+            activity = Activity()
+            activity.subject = mail.subject
+            activity.activity_type = activity_type
+            activity.employee = employee
+            activity.dtstart = mail.date
+            activity.description = html2text(mail.body_plain).replace('\r', '')
+            activity.mail = mail
+            activity.state = 'planned'
+            activity.resource = None
+            activity.origin = mail
+            activities.append(activity)
+            mail.mailbox = processed_mailbox
+        cls.save(activities)
+        ElectronicMail.save(mails)
+        cls.guess(activities)
+
+    def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')
-        Attachment = Pool().get('ir.attachment')
-        ActivityType = Pool().get('activity.type')
+        if not isinstance(self.origin, ElectronicMail):
+            return
+        parent = self.origin.parent
+        if not parent:
+            return
+        activities = self.search([
+                ('origin', '=', parent)
+                ], limit=1)
+        if activities:
+            return activities[0]
 
-        values = []
-        attachs = {}
-        for server_id, mails in list(received_mails.items()):
-            servers = IMAPServer.browse([server_id])
-            server = servers and servers[0] or None
-            for mail in mails:
-                # Control if the mail recevied is send by us, searching if
-                # there are any activity with that mail attached
-                activity_exist = cls.search([
-                    ('mail', '=', mail.id)
-                    ])
-                if activity_exist:
-                    continue
-                # Take the possible employee, if not the default.
-                deliveredtos = mail.deliveredto and [mail.deliveredto] or []
-                deliveredtos.extend([m[1] for m in mail.all_to])
-                deliveredtos.extend([m[1] for m in mail.all_cc])
-                deliveredtos = ElectronicMail.validate_emails(deliveredtos)
-                contact = None
-                if deliveredtos:
-                    employees = CompanyEmployee.search([])
-                    parties = [p.party.id for p in employees]
-                    contacts = []
-                    for deliveredto in deliveredtos:
-                        cm = cls.get_contact_mechanism(deliveredto, parties)
-                        if cm:
-                            contacts.append(cm)
-                    contact = contacts and contacts[0] or None
-                employee = None
-                if contact:
-                    emails_employee = [c.value
-                        for c in contact.party.contact_mechanisms
-                        if c.type == 'email']
-                    employee = CompanyEmployee.search([
-                        ('party', '=', contact.party.id)
-                        ])
-                if not employee:
-                    employee = server and server.employee or None
-                    emails_employee = (server and server.employee and
-                        [server.employee.party.email] or [])
-                else:
-                    employee = employee[0]
-
-                # Search for the parties with that mails, to attach in the
-                # contacts and main contact
-                mail_from = ElectronicMail.validate_emails(
-                    parseaddr(mail.from_.replace(',', ' '))[1])
-                contact = cls.get_contact_mechanism(mail_from)
-                main_contact = contact and contact.party or False
-
-                email_to = []
-                for to in mail.all_to:
-                    if to[1] not in emails_employee:
-                        email_to.append(to[1])
-                email_cc = email_to + [m[1] for m in mail.all_cc]
-                emails_cc = ElectronicMail.validate_emails(email_cc)
-                contacts = []
-                for email_cc in emails_cc:
-                    contact = cls.get_contact_mechanism(email_cc)
-                    if contact:
-                        contacts.append(contact.party.id)
-
-                # Search for the possible activity referenced to add in the
-                # same resource.
-                referenced_mail = []
-                if mail.in_reply_to:
-                    referenced_mail = ElectronicMail.search([
-                        ('message_id', '=', mail.in_reply_to)
-                        ])
-                if not referenced_mail and mail.reference:
-                    referenced_mail = ElectronicMail.search([
-                        ('message_id', 'in', mail.reference)
-                        ])
-
-                # Fill the fields, in case the activity don't have enought
-                # information
-                resource = None
-                party = (main_contact and
-                    [r.to for r in main_contact.relations] or [])
-                party = party and party[0] or None
-                if referenced_mail:
-                    # Search if the activity have resource to use for activity
-                    # that create now.
-                    referenced_mails = [r.id for r in referenced_mail]
-                    activities = cls.search([
-                        ('mail', 'in', referenced_mails)
-                        ])
-                    if activities:
-                        resource = activities[0].resource
-                        party = resource and resource.party or party
-
-                # TODO: Search for a better default.
-                # By the moment search the first activity type with the 0 in
-                # sequence
-                activity_types = ActivityType.search([
-                    ('sequence', '=', 0)
-                    ])
-                activity_type = activity_types and activity_types[0] or None
-
-                # Create the activity
-                base_values = {
-                    'subject': mail.subject or "NONE",
-                    'activity_type': activity_type,
-                    'employee': employee.id,
-                    'dtstart': datetime.datetime.now(),
-                    'description': (mail.body_plain
-                        or html2text(mail.body_html)),
-                    'mail': mail.id,
-                    'state': 'planned',
-                    'resource': None,
-                    }
-                values = base_values.copy()
-                if resource:
-                    values['resource'] = str(resource)
-                if party:
-                    values['party'] = party.id
-                if main_contact:
-                    values['main_contact'] = main_contact.id
-                if contacts:
-                    values['contacts'] = [('add', contacts)]
-                try:
-                    activity = cls.create([values])
-                except:
-                    activity = cls.create([base_values])
-
-                # Add all the possible attachments from the mil to the activity
-                msg = message_from_bytes(mail.mail_file)
-                attachs = ElectronicMail.get_attachments(msg)
-                if attachs:
-                    values = []
-                    for attach in attachs:
-                        values.append({
-                                'name': attach.get('filename', mail.subject),
-                                'type': 'data',
-                                'data': attach.get('data'),
-                                'resource': str(activity[0])
-                                })
-                    try:
-                        Attachment.create(values)
-                    except Exception as e:
-                        logging.getLogger('Activity Mail').info(
-                            'The mail (%s) has attachments but they are not '
-                            'possible to attach to the activity (%s).\n\n%s' %
-                            (mail.id, activity.id, e))
-        return mails
+    def guess_resource(self):
+        previous_activity = self.get_previous_activity()
+        if previous_activity:
+            if previous_activity.resource:
+                self.resource = previous_activity.resource
+                self.party = previous_activity.resource.party
 
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
