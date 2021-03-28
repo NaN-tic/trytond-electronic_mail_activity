@@ -2,7 +2,7 @@
 <!-- The COPYRIGHT file at the top level of this repository contains the full
      copyright notices and license terms. -->
 <data>
-    <xpath expr="/form/group[@id='buttons']/button[@name='activity_split']" position="after">
+    <xpath expr="/form/group[@id='buttons']" position="inside">
         <button name="guess"/>
     </xpath>
     <xpath expr="/form/label[@name='state']" position="replace" />
