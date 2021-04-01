@@ -282,7 +282,7 @@ class Activity(metaclass=PoolMeta):
         if contact_mechanisms:
             if len(contact_mechanisms) == 1:
                 return contact_mechanisms[0]
-            contact_mechanisms_copy = contact_mechanisms
+            contact_mechanisms_copy = contact_mechanisms[:]
             for contact_mechanism in contact_mechanisms:
                 party_relation = PartyRelation.search([
                     ('from_', '=', contact_mechanism.party.id),
@@ -367,12 +367,68 @@ class Activity(metaclass=PoolMeta):
         if activities:
             return activities[0]
 
+    @classmethod
+    def emails_to_reject(cls):
+        pool = Pool()
+        Employee = pool.get('company.employee')
+        Company = pool.get('company.company')
+        ContactMechanism = pool.get('party.contact_mechanism')
+        User = pool.get('res.user')
+
+        employees = Employee.search([])
+        parties = [x.party for x in employees]
+        parties += [x.party for x in Company.search([])]
+        contact_mechanisms = ContactMechanism.search([
+                ('type', '=', 'email'),
+                ('party', 'in', parties)
+                ])
+        mails = [x.value.lower() for x in contact_mechanisms]
+        return set(mails)
+
     def guess_resource(self):
+        pool = Pool()
+        ElectronicMail = pool.get('electronic.mail')
+        Activity = pool.get('activity.activity')
+        Party = pool.get('party.party')
+
         previous_activity = self.get_previous_activity()
         if previous_activity:
             if previous_activity.resource:
                 self.resource = previous_activity.resource
                 self.party = previous_activity.resource.party
+        elif self.origin and isinstance(self.origin, ElectronicMail):
+            _, email = parseaddr(self.origin.from_)
+            rejected_emails = self.emails_to_reject()
+            if email in rejected_emails:
+                addresses = [x[1] for x in self.origin.all_to
+                    if x[1] not in rejected_emails]
+                if not addresses:
+                    return
+                email = addresses[0]
+
+            activities = Activity.search([
+                    ('party', '!=', None),
+                    ('origin.from_', 'ilike', '%' + email + '%',
+                        'electronic.mail'),
+                    ], limit=1, order=[('dtstart', 'DESC')])
+            if activities:
+                self.party = activities[0].party
+                return
+
+            activities = Activity.search([
+                    ('party', '!=', None),
+                    ('origin.to', 'ilike', '%' + email + '%',
+                        'electronic.mail'),
+                    ], limit=1, order=[('dtstart', 'DESC')])
+            if activities:
+                self.party = activities[0].party
+                return
+
+            parties = Party.search([
+                ('contact_mechanisms.value', 'ilike', email),
+                ], limit=1)
+            if parties:
+                self.party = parties[0]
 
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
