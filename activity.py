@@ -319,7 +319,11 @@ class Activity(metaclass=PoolMeta):
             activity.activity_type = activity_type
             activity.employee = employee
             activity.dtstart = mail.date
-            activity.description = html2text(mail.body_plain).replace('\r', '')
+            if mail.body_plain:
+                activity.description = mail.body_plain
+            elif mail.body_html:
+                activity.description = html2text(mail.body_html).replace('\r', '')
+            activity.description = activity.description.replace('<br/>', '\n')
             activity.mail = mail
             activity.state = 'planned'
             activity.resource = None
