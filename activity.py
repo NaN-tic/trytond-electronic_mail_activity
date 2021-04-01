@@ -5,8 +5,8 @@ from trytond.model import fields, ModelView
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
-from email.utils import formataddr, formatdate, make_msgid
-from email import encoders
+from email.utils import formataddr, formatdate, make_msgid, parseaddr
+from email import encoders, message_from_bytes
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -303,6 +303,7 @@ class Activity(metaclass=PoolMeta):
         Activity = pool.get('activity.activity')
         ActivityType = pool.get('activity.type')
         ActivityConfiguration = pool.get('activity.configuration')
+        Attachment = pool.get('ir.attachment')
 
         mails = ElectronicMail.search([
                     ('mailbox', '=', ActivityConfiguration(0).pending_mailbox)
@@ -313,6 +314,7 @@ class Activity(metaclass=PoolMeta):
         employee = ActivityConfiguration(0).employee
         processed_mailbox = ActivityConfiguration(0).processed_mailbox
         activities = []
+        activity_attachments = []
         for mail in mails:
             activity = Activity()
             activity.subject = mail.subject
@@ -329,11 +331,28 @@ class Activity(metaclass=PoolMeta):
             activity.state = 'planned'
             activity.resource = None
             activity.origin = mail
+
+            msg = message_from_bytes(mail.mail_file)
+            attachments = []
+            for attachment in ElectronicMail.get_attachments(msg):
+                attachments.append(Attachment(
+                    name = attachment.get('filename', mail.subject),
+                    type = 'data',
+                    data = attachment.get('data')))
+            activity_attachments.append(attachments)
             activities.append(activity)
             mail.mailbox = processed_mailbox
-        cls.save(activities)
-        ElectronicMail.save(mails)
-        cls.guess(activities)
+
+        if activities:
+            cls.save(activities)
+            to_save = []
+            for activity, attachments in zip(activities, activity_attachments):
+                for attachment in attachments:
+                    attachment.resource = str(activity)
+                to_save += attachments
+            Attachment.save(to_save)
+            ElectronicMail.save(mails)
+            cls.guess(activities)
 
     def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')
