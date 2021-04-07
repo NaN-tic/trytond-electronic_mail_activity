@@ -324,8 +324,8 @@ class Activity(metaclass=PoolMeta):
             if mail.body_plain:
                 activity.description = mail.body_plain
             elif mail.body_html:
-                activity.description = html2text(
-                    mail.body_html).replace('\r', '')
+                activity.description = html2text(mail.body_html)
+            activity.description = activity.description.replace('\r', '')
             activity.description = activity.description.replace('<br/>', '\n')
             activity.mail = mail
             activity.state = 'planned'
