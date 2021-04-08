@@ -317,16 +317,20 @@ class Activity(metaclass=PoolMeta):
         activity_attachments = []
         for mail in mails:
             activity = Activity()
-            activity.subject = mail.subject
+            if mail.subject:
+                activity.subject = mail.subject.replace('\r', '')
             activity.activity_type = activity_type
             activity.employee = employee
             activity.dtstart = mail.date
             if mail.body_plain:
-                activity.description = mail.body_plain
+                description = mail.body_plain
             elif mail.body_html:
-                activity.description = html2text(mail.body_html)
-            activity.description = activity.description.replace('\r', '')
-            activity.description = activity.description.replace('<br/>', '\n')
+                description = html2text(mail.body_html)
+            else:
+                description = None
+            if description:
+                activity.description = description.replace('\r', '').replace(
+                    '<br/>', '\n')
             activity.mail = mail
             activity.state = 'planned'
             activity.resource = None
