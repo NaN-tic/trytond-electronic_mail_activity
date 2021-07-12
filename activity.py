@@ -379,7 +379,6 @@ class Activity(metaclass=PoolMeta):
         Employee = pool.get('company.employee')
         Company = pool.get('company.company')
         ContactMechanism = pool.get('party.contact_mechanism')
-        User = pool.get('res.user')
 
         employees = Employee.search([])
         parties = [x.party for x in employees]
