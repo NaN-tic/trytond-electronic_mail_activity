@@ -338,14 +338,15 @@ class Activity(metaclass=PoolMeta):
             activity.resource = None
             activity.origin = mail
 
-            msg = message_from_bytes(mail.mail_file)
-            attachments = []
-            for attachment in ElectronicMail.get_attachments(msg):
-                attachments.append(Attachment(
-                    name = attachment.get('filename', mail.subject),
-                    type = 'data',
-                    data = attachment.get('data')))
-            activity_attachments.append(attachments)
+            if mail.mail_file:
+                msg = message_from_bytes(mail.mail_file)
+                attachments = []
+                for attachment in ElectronicMail.get_attachments(msg):
+                    attachments.append(Attachment(
+                        name = attachment.get('filename', mail.subject),
+                        type = 'data',
+                        data = attachment.get('data')))
+                activity_attachments.append(attachments)
             activities.append(activity)
             mail.mailbox = processed_mailbox
 
