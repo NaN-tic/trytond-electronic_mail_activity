@@ -402,6 +402,8 @@ class Activity(metaclass=PoolMeta):
             if previous_activity.resource:
                 self.resource = previous_activity.resource
                 self.party = previous_activity.resource.party
+                if not self.party:
+                    self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
             _, email = parseaddr(self.origin.from_)
             rejected_emails = self.emails_to_reject()
