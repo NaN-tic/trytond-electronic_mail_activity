@@ -335,6 +335,7 @@ class Activity(metaclass=PoolMeta):
                     '<br/>', '\n')
             activity.mail = mail
             activity.state = 'planned'
+
             activity.resource = None
             activity.origin = mail
 
@@ -405,29 +406,24 @@ class Activity(metaclass=PoolMeta):
                 if not self.party:
                     self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
-            _, email = parseaddr(self.origin.from_)
+            # parseaddr return first email
+            _, email_from = parseaddr(self.origin.from_)
+            _, email_to = parseaddr(self.origin.to)
             rejected_emails = self.emails_to_reject()
-            if email in rejected_emails:
-                addresses = [x[1] for x in self.origin.all_to
-                    if x[1] not in rejected_emails]
-                if not addresses:
-                    return
-                email = addresses[0]
-
-            activities = Activity.search([
-                    ('party', '!=', None),
-                    ('origin.from_', 'ilike', '%' + email + '%',
-                        'electronic.mail'),
-                    ], limit=1, order=[('dtstart', 'DESC')])
-            if activities:
-                self.party = activities[0].party
+            addresses = [x for x in (email_from, email_to)
+                if x not in rejected_emails and x != '']
+            if not addresses:
                 return
 
-            activities = Activity.search([
-                    ('party', '!=', None),
+            email = addresses[0]
+            activities = Activity.search(['OR', [
+                    ('origin.from_', 'ilike', '%' + email + '%',
+                        'electronic.mail'),
+                    ], [
                     ('origin.to', 'ilike', '%' + email + '%',
                         'electronic.mail'),
-                    ], limit=1, order=[('dtstart', 'DESC')])
+                    ],
+                ], limit=1, order=[('dtstart', 'DESC')])
             if activities:
                 self.party = activities[0].party
                 return
