@@ -416,13 +416,17 @@ class Activity(metaclass=PoolMeta):
                 return
 
             email = addresses[0]
-            activities = Activity.search(['OR', [
-                    ('origin.from_', 'ilike', '%' + email + '%',
-                        'electronic.mail'),
+            activities = Activity.search([
+                ('party', '!=', None),
+                ['OR',
+                    [
+                        ('origin.from_', 'ilike', '%' + email + '%',
+                            'electronic.mail'),
                     ], [
-                    ('origin.to', 'ilike', '%' + email + '%',
-                        'electronic.mail'),
+                        ('origin.to', 'ilike', '%' + email + '%',
+                            'electronic.mail'),
                     ],
+                ],
                 ], limit=1, order=[('dtstart', 'DESC')])
             if activities:
                 self.party = activities[0].party
