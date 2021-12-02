@@ -46,6 +46,7 @@ class Activity(metaclass=PoolMeta):
     #related_activity = fields.Many2One('activity.activity', 'Related activity',
     #    domain=[('id', 'in', Eval('resource.activities', []))], depends=['resource'])
     related_activity = fields.Many2One('activity.activity', 'Related activity')
+    mail_content = fields.Function(fields.Binary('Mail Content'), 'get_mail_content')
 
     @classmethod
     def __setup__(cls):
@@ -92,11 +93,17 @@ class Activity(metaclass=PoolMeta):
         return result
 
     @classmethod
-    def get_have_mail(self, activities, name):
+    def get_have_mail(cls, activities, name):
         result = {}
         for activity in activities:
             result[activity.id] = activity.mail and True or False
         return result
+
+    def get_mail_content(self, name):
+        pool = Pool()
+        ElectronicMail = pool.get('electronic.mail')
+        if isinstance(self.origin, ElectronicMail):
+            return self.origin.preview
 
     @classmethod
     @ModelView.button

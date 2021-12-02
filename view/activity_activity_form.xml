@@ -5,6 +5,11 @@
     <xpath expr="/form/group[@id='buttons']" position="inside">
         <button name="guess"/>
     </xpath>
+    <xpath expr="/form/notebook" position="inside">
+         <page name="mail_content">
+            <field name="mail_content" widget="document" colspan="4"  height="400"/>
+        </page>
+    </xpath>
     <xpath expr="/form/label[@name='state']" position="replace" />
     <xpath expr="/form/field[@name='state']" position="replace">
         <group id="state" colspan="4" col="6">
