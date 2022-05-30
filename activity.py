@@ -368,6 +368,8 @@ class Activity(metaclass=PoolMeta):
             to_save = []
             for activity, attachments in zip(activities, activity_attachments):
                 for attachment in attachments:
+                    attachment.name = attachment.name.replace(
+                        '\n','').replace('\r', '')
                     attachment.resource = str(activity)
                 to_save += attachments
             Attachment.save(to_save)
