@@ -201,8 +201,7 @@ class Activity(metaclass=PoolMeta):
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
-        mail_str = ElectronicMail._get_mail(mail)
-        user.smtp_server.send_mail(mail.from_, emails, mail_str)
+        user.smtp_server.send_mail(mail.from_, emails, mail.mail_file)
         ElectronicMail.write([mail], {
                 'flag_send': True,
                 })
