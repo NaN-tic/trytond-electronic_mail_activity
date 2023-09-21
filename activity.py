@@ -16,6 +16,7 @@ import logging
 import datetime
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
+from trytond.config import config
 
 try:
     from html2text import html2text
@@ -24,7 +25,7 @@ except ImportError:
     logging.getLogger('MailObj').error(message)
     raise Exception(message)
 
-__all__ = ['Activity', 'ActivityReplyMail']
+QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
 
 class Cron(metaclass=PoolMeta):
@@ -310,6 +311,11 @@ class Activity(metaclass=PoolMeta):
 
     @classmethod
     def create_activity(cls):
+        with Transaction().set_context(queue_name=QUEUE_NAME):
+            cls.__queue__._create_activity()
+
+    @classmethod
+    def _create_activity(cls):
         pool = Pool()
         ModelData = pool.get('ir.model.data')
         ElectronicMail = pool.get('electronic.mail')
