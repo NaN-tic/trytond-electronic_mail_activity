@@ -16,6 +16,7 @@ import logging
 import datetime
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
+from trytond.config import config
 
 try:
     from html2text import html2text
@@ -24,7 +25,7 @@ except ImportError:
     logging.getLogger('MailObj').error(message)
     raise Exception(message)
 
-__all__ = ['Activity', 'ActivityReplyMail']
+QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
 
 class Cron(metaclass=PoolMeta):
@@ -310,6 +311,11 @@ class Activity(metaclass=PoolMeta):
 
     @classmethod
     def create_activity(cls):
+        with Transaction().set_context(queue_name=QUEUE_NAME):
+            cls.__queue__._create_activity()
+
+    @classmethod
+    def _create_activity(cls):
         pool = Pool()
         ModelData = pool.get('ir.model.data')
         ElectronicMail = pool.get('electronic.mail')
@@ -318,14 +324,17 @@ class Activity(metaclass=PoolMeta):
         ActivityConfiguration = pool.get('activity.configuration')
         Attachment = pool.get('ir.attachment')
 
+        config = ActivityConfiguration(1)
+        employee = config.employee
+        pending_mailbox = config.pending_mailbox
+        processed_mailbox = config.processed_mailbox
+
         mails = ElectronicMail.search([
-                    ('mailbox', '=', ActivityConfiguration(0).pending_mailbox)
+                    ('mailbox', '=', pending_mailbox)
                     ], order=[('date', 'ASC'), ('id', 'ASC')])
         activity_type = ActivityType(ModelData.get_id('activity',
                 'incoming_email_type'))
 
-        employee = ActivityConfiguration(0).employee
-        processed_mailbox = ActivityConfiguration(0).processed_mailbox
         activities = []
         activity_attachments = []
         for mail in mails:
@@ -360,7 +369,6 @@ class Activity(metaclass=PoolMeta):
                         data = attachment.get('data')))
                 activity_attachments.append(attachments)
             activities.append(activity)
-            mail.mailbox = processed_mailbox
 
         if activities:
             cls.save(activities)
@@ -372,8 +380,10 @@ class Activity(metaclass=PoolMeta):
                     attachment.resource = str(activity)
                 to_save += attachments
             Attachment.save(to_save)
-            ElectronicMail.save(mails)
             cls.guess(activities)
+
+        # mails to processed mailbox
+        ElectronicMail.write(mails, {'mailbox': processed_mailbox})
 
     def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')
@@ -394,7 +404,6 @@ class Activity(metaclass=PoolMeta):
         Employee = pool.get('company.employee')
         Company = pool.get('company.company')
         ContactMechanism = pool.get('party.contact_mechanism')
-        User = pool.get('res.user')
 
         employees = Employee.search([])
         parties = [x.party for x in employees]
