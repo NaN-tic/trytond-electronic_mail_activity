@@ -6,7 +6,7 @@ from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
 from email.utils import formataddr, formatdate, make_msgid, parseaddr
-from email import encoders, message_from_bytes
+from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -17,13 +17,6 @@ import datetime
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
 from trytond.config import config
-
-try:
-    from html2text import html2text
-except ImportError:
-    message = "Unable to import html2text and it's needed."
-    logging.getLogger('MailObj').error(message)
-    raise Exception(message)
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -323,74 +316,7 @@ class Activity(metaclass=PoolMeta):
                     ], order=[('date', 'ASC'), ('id', 'ASC')])
 
         with Transaction().set_context(queue_name=QUEUE_NAME):
-            cls.__queue__._create_activity(mails)
-
-    @classmethod
-    def _create_activity(cls, mails):
-        pool = Pool()
-        ModelData = pool.get('ir.model.data')
-        ElectronicMail = pool.get('electronic.mail')
-        Activity = pool.get('activity.activity')
-        ActivityType = pool.get('activity.type')
-        ActivityConfiguration = pool.get('activity.configuration')
-        Attachment = pool.get('ir.attachment')
-
-        config = ActivityConfiguration(1)
-        employee = config.employee
-        processed_mailbox = config.processed_mailbox
-
-        activity_type = ActivityType(ModelData.get_id('activity',
-                'incoming_email_type'))
-
-        activities = []
-        activity_attachments = []
-        for mail in mails:
-            activity = Activity()
-            if mail.subject:
-                activity.subject = mail.subject.replace('\r', '')
-            activity.activity_type = activity_type
-            activity.employee = employee
-            activity.dtstart = mail.date
-            if mail.body_plain:
-                description = mail.body_plain
-            elif mail.body_html:
-                description = html2text(mail.body_html)
-            else:
-                description = None
-            if description:
-                activity.description = description.replace('\r', '').replace(
-                    '<br/>', '\n')
-            activity.mail = mail
-            activity.state = 'planned'
-
-            activity.resource = None
-            activity.origin = mail
-
-            if mail.mail_file:
-                msg = message_from_bytes(mail.mail_file)
-                attachments = []
-                for attachment in ElectronicMail.get_attachments(msg):
-                    attachments.append(Attachment(
-                        name = attachment.get('filename', mail.subject),
-                        type = 'data',
-                        data = attachment.get('data')))
-                activity_attachments.append(attachments)
-            activities.append(activity)
-
-        if activities:
-            cls.save(activities)
-            to_save = []
-            for activity, attachments in zip(activities, activity_attachments):
-                for attachment in attachments:
-                    attachment.name = attachment.name.replace(
-                        '\n','').replace('\r', '')
-                    attachment.resource = str(activity)
-                to_save += attachments
-            Attachment.save(to_save)
-            cls.guess(activities)
-
-        # mails to processed mailbox
-        ElectronicMail.write(mails, {'mailbox': processed_mailbox})
+            ElectronicMail.__queue__._create_activity(mails)
 
     def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')
