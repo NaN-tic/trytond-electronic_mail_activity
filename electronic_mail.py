@@ -61,7 +61,7 @@ class ElectronicMail(metaclass=PoolMeta):
             if mail.mail_file:
                 msg = message_from_bytes(mail.mail_file)
                 attachments = []
-                for attachment in Activity.get_attachments(msg):
+                for attachment in cls.get_attachments(msg):
                     attachments.append(Attachment(
                         name = attachment.get('filename', mail.subject),
                         type = 'data',
