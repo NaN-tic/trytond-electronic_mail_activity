@@ -311,11 +311,22 @@ class Activity(metaclass=PoolMeta):
 
     @classmethod
     def create_activity(cls):
+        pool = Pool()
+        ActivityConfiguration = pool.get('activity.configuration')
+        ElectronicMail = pool.get('electronic.mail')
+
+        config = ActivityConfiguration(1)
+        pending_mailbox = config.pending_mailbox
+
+        mails = ElectronicMail.search([
+                    ('mailbox', '=', pending_mailbox)
+                    ], order=[('date', 'ASC'), ('id', 'ASC')])
+
         with Transaction().set_context(queue_name=QUEUE_NAME):
-            cls.__queue__._create_activity()
+            cls.__queue__._create_activity(mails)
 
     @classmethod
-    def _create_activity(cls):
+    def _create_activity(cls, mails):
         pool = Pool()
         ModelData = pool.get('ir.model.data')
         ElectronicMail = pool.get('electronic.mail')
@@ -326,12 +337,8 @@ class Activity(metaclass=PoolMeta):
 
         config = ActivityConfiguration(1)
         employee = config.employee
-        pending_mailbox = config.pending_mailbox
         processed_mailbox = config.processed_mailbox
 
-        mails = ElectronicMail.search([
-                    ('mailbox', '=', pending_mailbox)
-                    ], order=[('date', 'ASC'), ('id', 'ASC')])
         activity_type = ActivityType(ModelData.get_id('activity',
                 'incoming_email_type'))
 
