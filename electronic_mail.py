@@ -61,7 +61,7 @@ class ElectronicMail(metaclass=PoolMeta):
             if mail.mail_file:
                 msg = message_from_bytes(mail.mail_file)
                 attachments = []
-                for attachment in cls.get_attachments(msg):
+                for attachment in Activity.get_attachments(msg):
                     attachments.append(Attachment(
                         name = attachment.get('filename', mail.subject),
                         type = 'data',
@@ -70,7 +70,7 @@ class ElectronicMail(metaclass=PoolMeta):
             activities.append(activity)
 
         if activities:
-            cls.save(activities)
+            Activity.save(activities)
             to_save = []
             for activity, attachments in zip(activities, activity_attachments):
                 for attachment in attachments:
@@ -79,7 +79,7 @@ class ElectronicMail(metaclass=PoolMeta):
                     attachment.resource = str(activity)
                 to_save += attachments
             Attachment.save(to_save)
-            cls.guess(activities)
+            Activity.guess(activities)
 
         # mails to processed mailbox
         cls.write(mails, {'mailbox': processed_mailbox})
