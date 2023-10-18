@@ -402,12 +402,9 @@ class ActivityReplyMail(Wizard, metaclass=PoolMeta):
     open_ = StateAction('activity.act_activity_activity')
 
     def do_open_(self, action):
-        Activity = Pool().get('activity.activity')
-
-        activities = Activity.browse([Transaction().context['active_id']])
         re = "Re: "
         return_activities = []
-        for activity in activities:
+        for activity in self.records:
             return_activity = Activity.copy([activity])[0]
             if return_activity.subject[:3].lower() != re[:3].lower():
                 return_activity.subject = "%s%s" % (re, return_activity.subject)
