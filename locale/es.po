@@ -2,6 +2,10 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
+msgctxt "field:activity.activity,filename:"
+msgid "File Name"
+msgstr "Nombre del archivo"
+
 msgctxt "field:activity.activity,have_mail:"
 msgid "Have mail"
 msgstr "Es un correo"
@@ -10,9 +14,17 @@ msgctxt "field:activity.activity,mail:"
 msgid "Related Mail"
 msgstr "Correo relacionado"
 
+msgctxt "field:activity.activity,mail_content:"
+msgid "Mail Content"
+msgstr "Contenido del correo"
+
 msgctxt "field:activity.activity,related_activity:"
 msgid "Related activity"
 msgstr "Actividad relacionada"
+
+msgctxt "field:activity.configuration,employee:"
+msgid "Employee"
+msgstr "Empleado"
 
 msgctxt "field:activity.configuration,pending_mailbox:"
 msgid "Pending Mailbox"
@@ -21,10 +33,6 @@ msgstr "Buzón Pendientes"
 msgctxt "field:activity.configuration,processed_mailbox:"
 msgid "Processed Mailbox"
 msgstr "Buzón Procesados"
-
-msgctxt "field:imap.server,employee:"
-msgid "Default Employee"
-msgstr "Empleado por defecto"
 
 msgctxt "field:res.user,add_signature:"
 msgid "Use Signature"
@@ -56,6 +64,10 @@ msgctxt "model:ir.message,text:mail_received"
 msgid "The activity (id: \"%(activity)s\") is a mail received so you ca not send."
 msgstr ""
 "Este correo (id: \"%(activity)s\") es un correo recibido y no puede enviar."
+
+msgctxt "model:ir.message,text:msg_electronic_mail_unique"
+msgid "A electronic mail can be linked to only one activity."
+msgstr "Un correo electrónico sólo puede estar vinculado a una actividad."
 
 msgctxt "model:ir.message,text:no_mailbox"
 msgid ""

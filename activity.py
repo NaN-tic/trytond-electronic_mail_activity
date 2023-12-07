@@ -1,7 +1,7 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
 from trytond.pool import Pool, PoolMeta
-from trytond.model import fields, ModelView
+from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
@@ -46,7 +46,14 @@ class Activity(metaclass=PoolMeta):
 
     @classmethod
     def __setup__(cls):
-        super(Activity, cls).__setup__()
+        super().__setup__()
+
+        t = cls.__table__()
+        cls._sql_constraints = [
+            ('mail_unique', Unique(t, t.mail),
+                'electronic_mail_activity.msg_electronic_mail_unique'),
+            ]
+
         cls._buttons.update({
                 'new': {
                     'icon': 'tryton-email',
@@ -305,18 +312,10 @@ class Activity(metaclass=PoolMeta):
     @classmethod
     def create_activity(cls):
         pool = Pool()
-        ActivityConfiguration = pool.get('activity.configuration')
         ElectronicMail = pool.get('electronic.mail')
 
-        config = ActivityConfiguration(1)
-        pending_mailbox = config.pending_mailbox
-
-        mails = ElectronicMail.search([
-                    ('mailbox', '=', pending_mailbox)
-                    ], order=[('date', 'ASC'), ('id', 'ASC')])
-
         with Transaction().set_context(queue_name=QUEUE_NAME):
-            ElectronicMail.__queue__._create_activity(mails)
+            ElectronicMail.__queue__._create_activity()
 
     def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')

@@ -2,6 +2,10 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=utf-8\n"
 
+msgctxt "field:activity.activity,filename:"
+msgid "File Name"
+msgstr "Nom del fitxer"
+
 msgctxt "field:activity.activity,have_mail:"
 msgid "Have mail"
 msgstr "Es un correu"
@@ -10,9 +14,17 @@ msgctxt "field:activity.activity,mail:"
 msgid "Related Mail"
 msgstr "Correu relacionat"
 
+msgctxt "field:activity.activity,mail_content:"
+msgid "Mail Content"
+msgstr "Contingut del correu"
+
 msgctxt "field:activity.activity,related_activity:"
 msgid "Related activity"
 msgstr "Activitat relacionada"
+
+msgctxt "field:activity.configuration,employee:"
+msgid "Employee"
+msgstr "Empleat"
 
 msgctxt "field:activity.configuration,pending_mailbox:"
 msgid "Pending Mailbox"
@@ -21,10 +33,6 @@ msgstr "Bústia de correu Pendents"
 msgctxt "field:activity.configuration,processed_mailbox:"
 msgid "Processed Mailbox"
 msgstr "Bústia de correu Processats"
-
-msgctxt "field:imap.server,employee:"
-msgid "Default Employee"
-msgstr "Empleat per defecte"
 
 msgctxt "field:res.user,add_signature:"
 msgid "Use Signature"
@@ -54,6 +62,10 @@ msgstr "Respon correu"
 msgctxt "model:ir.message,text:mail_received"
 msgid "The activity (id: \"%(activity)s\") is a mail received so you ca not send."
 msgstr "Aquesta activitat (id: \"%s\") es un correu rebut i no el pot enviar."
+
+msgctxt "model:ir.message,text:msg_electronic_mail_unique"
+msgid "A electronic mail can be linked to only one activity."
+msgstr "Un correu electrònic només es pot enllaçar a una activitat."
 
 msgctxt "model:ir.message,text:no_mailbox"
 msgid ""
