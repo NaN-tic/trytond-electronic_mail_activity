@@ -19,7 +19,7 @@ class ElectronicMail(metaclass=PoolMeta):
     __name__ = 'electronic.mail'
 
     @classmethod
-    def _create_activity(cls):
+    def _create_activity(cls, mails):
         pool = Pool()
         ModelData = pool.get('ir.model.data')
         Activity = pool.get('activity.activity')
@@ -29,19 +29,16 @@ class ElectronicMail(metaclass=PoolMeta):
 
         config = ActivityConfiguration(1)
         employee = config.employee
-        pending_mailbox = config.pending_mailbox
         processed_mailbox = config.processed_mailbox
 
         activity_type = ActivityType(ModelData.get_id('activity',
                 'incoming_email_type'))
 
-        mails = ElectronicMail.search([
-                    ('mailbox', '=', pending_mailbox)
-                    ], order=[('date', 'ASC'), ('id', 'ASC')])
-
         activities = []
         activity_attachments = []
         for mail in mails:
+            if mail.mailbox == processed_mailbox:
+                continue
             activity = Activity()
             if mail.subject:
                 activity.subject = mail.subject.replace('\r', '')
