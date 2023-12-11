@@ -313,9 +313,18 @@ class Activity(metaclass=PoolMeta):
     def create_activity(cls):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
+        ActivityConfiguration = pool.get('activity.configuration')
+
+        config = ActivityConfiguration(1)
+        pending_mailbox = config.pending_mailbox
+
+        mails = ElectronicMail.search([
+                    ('mailbox', '=', pending_mailbox)
+                    ], order=[('date', 'ASC'), ('id', 'ASC')])
+
 
         with Transaction().set_context(queue_name=QUEUE_NAME):
-            ElectronicMail.__queue__._create_activity()
+            ElectronicMail.__queue__._create_activity(mails)
 
     def get_previous_activity(self):
         ElectronicMail = Pool().get('electronic.mail')
