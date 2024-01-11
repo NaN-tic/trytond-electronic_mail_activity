@@ -38,7 +38,7 @@ class Activity(metaclass=PoolMeta):
             ondelete='CASCADE')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
     #related_activity = fields.Many2One('activity.activity', 'Related activity',
-    #    domain=[('id', 'in', Eval('resource.activities', []))], depends=['resource'])
+    #    domain=[('id', 'in', Eval('resource.activities', []))])
     related_activity = fields.Many2One('activity.activity', 'Related activity')
     mail_content = fields.Function(fields.Binary('Mail Content', filename='filename'),
         'get_mail_content')
