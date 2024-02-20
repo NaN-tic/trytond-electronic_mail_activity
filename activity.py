@@ -135,6 +135,7 @@ class Activity(metaclass=PoolMeta):
         for activity in activities:
             activity = cls(activity)
             activity.guess_resource()
+            activity.guess_contacts()
             # Each activity is saved because in this list there
             # could be a resource of another of the same list
             activity.save()
@@ -340,7 +341,7 @@ class Activity(metaclass=PoolMeta):
             return activities[0]
 
     @classmethod
-    def emails_to_reject(cls):
+    def emails_to_check(cls, emails):
         pool = Pool()
         Employee = pool.get('company.employee')
         Company = pool.get('company.company')
@@ -349,12 +350,15 @@ class Activity(metaclass=PoolMeta):
         employees = Employee.search([])
         parties = [x.party for x in employees]
         parties += [x.party for x in Company.search([])]
+
         contact_mechanisms = ContactMechanism.search([
                 ('type', '=', 'email'),
-                ('party', 'in', parties)
+                ('party', 'in', parties),
+                ('value', '!=', None),
                 ])
-        mails = [x.value.lower() for x in contact_mechanisms]
-        return set(mails)
+
+        mails = [x.value.lower().strip() for x in contact_mechanisms]
+        return list(set([x for x in emails if x.lower().strip() not in mails]))
 
     def guess_resource(self):
         pool = Pool()
@@ -371,15 +375,15 @@ class Activity(metaclass=PoolMeta):
                     self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
             # parseaddr return first email
-            _, email_from = parseaddr(self.origin.from_)
-            _, email_to = parseaddr(self.origin.to)
-            rejected_emails = self.emails_to_reject()
-            addresses = [x for x in (email_from, email_to)
-                if x not in rejected_emails and x != '']
+            addresses = self.get_addresses(self.origin.from_, self.origin.to)
+
+            addresses = self.emails_to_check(addresses)
             if not addresses:
                 return
-
             email = addresses[0]
+            if not email:
+                return
+
             activities = Activity.search([
                 ('party', '!=', None),
                 ['OR',
@@ -396,11 +400,46 @@ class Activity(metaclass=PoolMeta):
                 self.party = activities[0].party
                 return
 
+
+
             parties = Party.search([
                 ('contact_mechanisms.value', 'ilike', email),
                 ], limit=1)
             if parties:
                 self.party = parties[0]
+
+    def guess_contacts(self):
+        pool = Pool()
+        ElectronicMail = pool.get('electronic.mail')
+        Activity = pool.get('activity.activity')
+        Party = pool.get('party.party')
+
+
+        if self.origin and isinstance(self.origin, ElectronicMail):
+            # parseaddr return first email
+            addresses = self.get_addresses(self.origin.from_, self.origin.to)
+
+            if not addresses:
+                return
+
+            unique_parties = []
+            addresses_to_add_contact = [contact_to_add for contact_to_add in self.allowed_contacts if contact_to_add.email.lower() in (address.lower() for address in addresses if address)]
+            for party_no_dup in addresses_to_add_contact:
+                if party_no_dup not in unique_parties:
+                    unique_parties.extend(addresses_to_add_contact)
+
+            if len(unique_parties) == 1:
+                self.contacts += (unique_parties[0],)
+            else:
+                for element in unique_parties:
+                    self.contacts += (element,)
+
+
+    def get_addresses(self, origin_from, origin_to):
+        _, email_from = parseaddr(origin_from)
+        to_addresses = origin_to.replace('<', '').replace('>', '').split(',')
+        addresses = [email_from.lower()] + [address_to.lower() for address_to in to_addresses if address_to.strip() and '"' not in address_to]
+        return addresses
 
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
