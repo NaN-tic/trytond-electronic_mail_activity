@@ -5,10 +5,13 @@
     <xpath expr="/form/group[@id='buttons']" position="inside">
         <button name="guess"/>
     </xpath>
-    <xpath expr="/form/notebook" position="inside">
-         <page name="mail_content">
+    <xpath expr="/form/notebook/page[@name='description']" position="before">
+        <page name="mail_content">
             <field name="mail_content" widget="document" colspan="4"  height="400"/>
         </page>
+    </xpath>
+    <xpath expr="/form/notebook/page[@name='html']" position="inside">
+        <field name="html" toolbar="0" yfill="1" widget="document"/>
     </xpath>
     <xpath expr="/form/label[@name='state']" position="replace" />
     <xpath expr="/form/field[@name='state']" position="replace">
