@@ -5,7 +5,7 @@ from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
-from email.utils import formataddr, formatdate, make_msgid, parseaddr
+from email.utils import formataddr, formatdate, make_msgid, parseaddr, getaddresses
 from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -374,9 +374,8 @@ class Activity(metaclass=PoolMeta):
                 if not self.party:
                     self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
-            # parseaddr return first email
-            addresses = self.get_addresses(self.origin.from_, self.origin.to)
-
+            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+            addresses = self.parse_addresses(addresses)
             addresses = self.emails_to_check(addresses)
             if not addresses:
                 return
@@ -400,8 +399,6 @@ class Activity(metaclass=PoolMeta):
                 self.party = activities[0].party
                 return
 
-
-
             parties = Party.search([
                 ('contact_mechanisms.value', 'ilike', email),
                 ], limit=1)
@@ -411,35 +408,17 @@ class Activity(metaclass=PoolMeta):
     def guess_contacts(self):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
-        Activity = pool.get('activity.activity')
-        Party = pool.get('party.party')
 
+        if isinstance(self.origin, ElectronicMail):
+            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+            addresses = self.parse_addresses(addresses)
+            to_add = [contact for x in addresses for contact in self.allowed_contacts if x in contact.email]
+            self.contacts += tuple(set(to_add))
 
-        if self.origin and isinstance(self.origin, ElectronicMail):
-            # parseaddr return first email
-            addresses = self.get_addresses(self.origin.from_, self.origin.to)
-
-            if not addresses:
-                return
-
-            unique_parties = []
-            addresses_to_add_contact = [contact_to_add for contact_to_add in self.allowed_contacts if contact_to_add.email.lower() in (address.lower() for address in addresses if address)]
-            for party_no_dup in addresses_to_add_contact:
-                if party_no_dup not in unique_parties:
-                    unique_parties.extend(addresses_to_add_contact)
-
-            if len(unique_parties) == 1:
-                self.contacts += (unique_parties[0],)
-            else:
-                for element in unique_parties:
-                    self.contacts += (element,)
-
-
-    def get_addresses(self, origin_from, origin_to):
-        _, email_from = parseaddr(origin_from)
-        to_addresses = origin_to.replace('<', '').replace('>', '').split(',')
-        addresses = [email_from.lower()] + [address_to.lower() for address_to in to_addresses if address_to.strip() and '"' not in address_to]
-        return addresses
+    @classmethod
+    def parse_addresses(cls, addresses):
+        addresses = getaddresses(addresses)
+        return [x[1].strip() for x in addresses if x[1].strip()]
 
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
