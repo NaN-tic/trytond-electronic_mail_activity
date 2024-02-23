@@ -5,7 +5,7 @@ from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
-from email.utils import formataddr, formatdate, make_msgid, parseaddr
+from email.utils import formataddr, formatdate, make_msgid, parseaddr, getaddresses
 from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -135,6 +135,7 @@ class Activity(metaclass=PoolMeta):
         for activity in activities:
             activity = cls(activity)
             activity.guess_resource()
+            activity.guess_contacts()
             # Each activity is saved because in this list there
             # could be a resource of another of the same list
             activity.save()
@@ -340,7 +341,7 @@ class Activity(metaclass=PoolMeta):
             return activities[0]
 
     @classmethod
-    def emails_to_reject(cls):
+    def emails_to_check(cls, emails):
         pool = Pool()
         Employee = pool.get('company.employee')
         Company = pool.get('company.company')
@@ -349,12 +350,15 @@ class Activity(metaclass=PoolMeta):
         employees = Employee.search([])
         parties = [x.party for x in employees]
         parties += [x.party for x in Company.search([])]
+
         contact_mechanisms = ContactMechanism.search([
                 ('type', '=', 'email'),
-                ('party', 'in', parties)
+                ('party', 'in', parties),
+                ('value', '!=', None),
                 ])
-        mails = [x.value.lower() for x in contact_mechanisms]
-        return set(mails)
+
+        mails = [x.value.lower().strip() for x in contact_mechanisms]
+        return list(set([x for x in emails if x.lower().strip() not in mails]))
 
     def guess_resource(self):
         pool = Pool()
@@ -370,16 +374,15 @@ class Activity(metaclass=PoolMeta):
                 if not self.party:
                     self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
-            # parseaddr return first email
-            _, email_from = parseaddr(self.origin.from_)
-            _, email_to = parseaddr(self.origin.to)
-            rejected_emails = self.emails_to_reject()
-            addresses = [x for x in (email_from, email_to)
-                if x not in rejected_emails and x != '']
+            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+            addresses = self.parse_addresses(addresses)
+            addresses = self.emails_to_check(addresses)
             if not addresses:
                 return
-
             email = addresses[0]
+            if not email:
+                return
+
             activities = Activity.search([
                 ('party', '!=', None),
                 ['OR',
@@ -401,6 +404,21 @@ class Activity(metaclass=PoolMeta):
                 ], limit=1)
             if parties:
                 self.party = parties[0]
+
+    def guess_contacts(self):
+        pool = Pool()
+        ElectronicMail = pool.get('electronic.mail')
+
+        if isinstance(self.origin, ElectronicMail):
+            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+            addresses = self.parse_addresses(addresses)
+            to_add = [contact for x in addresses for contact in self.allowed_contacts if x in contact.email]
+            self.contacts += tuple(set(to_add))
+
+    @classmethod
+    def parse_addresses(cls, addresses):
+        addresses = getaddresses(addresses)
+        return [x[1].strip() for x in addresses if x[1].strip()]
 
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
