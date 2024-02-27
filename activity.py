@@ -77,6 +77,13 @@ class Activity(metaclass=PoolMeta):
         return self.mail and self.mail.in_reply_to or (self.related_activity
             and self.related_activity.mail and
             self.related_activity.mail.message_id or "")
+        
+    def get_html(self, name):
+        pool = Pool()
+        ElectronicMail = pool.get('electronic.mail')
+        if isinstance(self.origin, ElectronicMail):
+            return self.origin.body_html
+        return super().get_html(name)
 
     @classmethod
     def _get_origin(cls):
