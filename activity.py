@@ -399,6 +399,8 @@ class Activity(metaclass=PoolMeta):
                 self.party = activities[0].party
                 return
 
+
+
             parties = Party.search([
                 ('contact_mechanisms.value', 'ilike', email),
                 ], limit=1)
