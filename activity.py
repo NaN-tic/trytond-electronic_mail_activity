@@ -1,5 +1,6 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
+from datetime import datetime
 from trytond.pool import Pool, PoolMeta
 from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
@@ -13,7 +14,6 @@ from email.mime.base import MIMEBase
 import mimetypes
 from trytond.modules.electronic_mail.electronic_mail import _make_header
 import logging
-import datetime
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
 from trytond.config import config
@@ -203,7 +203,7 @@ class Activity(metaclass=PoolMeta):
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
-        user.smtp_server.send_mail(mail.from_, emails, mail.mail_file)
+        user.smtp_server.send_mail(mail.from_, list(set(emails)), mail.mail_file)
         ElectronicMail.write([mail], {
                 'flag_send': True,
                 })
@@ -420,6 +420,15 @@ class Activity(metaclass=PoolMeta):
         addresses = getaddresses(addresses)
         return [x[1].strip() for x in addresses if x[1].strip()]
 
+    @classmethod
+    def send_mail_auto(cls, activities):
+        User = Pool().get('res.user')
+        user = User(Transaction().user)
+        Activity = Pool().get('activity.activity')
+        for activity in activities:
+            if activity.activity_type.send_mail_automatically:
+                cls.send_mail(activity, user)
+
 
 class ActivityReplyMail(Wizard, metaclass=PoolMeta):
     'Activity Reply Mail'
@@ -435,7 +444,7 @@ class ActivityReplyMail(Wizard, metaclass=PoolMeta):
             if return_activity.subject[:3].lower() != re[:3].lower():
                 return_activity.subject = "%s%s" % (re, return_activity.subject)
             return_activity.direction = 'outgoing'
-            return_activity.dtstart = datetime.datetime.now()
+            return_activity.dtstart = datetime.now()
             return_activity.mail = None
             return_activity.description = '\n'.join("> %s" % l.strip()
                 for l in return_activity.description.split('\n'))
@@ -447,3 +456,137 @@ class ActivityReplyMail(Wizard, metaclass=PoolMeta):
         if len(return_activities) == 1:
             action['views'].reverse()
         return action, data
+
+
+class SendActivityMailMixin():
+    __slots__ = ()
+    activity_text = fields.Text('Activity Text', states={
+            'readonly': Eval('id', 0) <= 0,
+            })
+    activity_type = fields.Many2One('activity.type', 'Activity Type', states={
+            'readonly': Eval('id', 0) <= 0,
+            })
+    activity_state = fields.Selection([
+            (None, ''),
+            ('planned', 'Planned'),
+            ('done', 'Done'),
+            ('cancelled', "Cancelled"),
+            ], 'State', states={
+                'readonly': Eval('id', 0) <= 0,
+                })
+    activity_work_time = fields.TimeDelta('Work Time', 'company_work_time',
+        states={
+            'readonly': Eval('id', 0) <= 0,
+            })
+    activity_subject = fields.Char('Activity Subject',states={
+            'readonly' : Eval('id', 0) <= 0,
+            })
+    activity_date = fields.DateTime('Activity Date', states={
+            'readonly' : Eval('id', 0) <= 0,
+            })
+    activity_contact = fields.Many2One('party.party', 'Contact', context={
+            'company': Eval('company', -1),
+        }, states={
+        'readonly': Eval('id', 0) <= 0,
+        })
+
+    @classmethod
+    def __setup__(cls):
+        super().__setup__()
+        if hasattr(cls, 'allowed_contacts'):
+            cls.activity_contact.domain = [
+                ('id', 'in', Eval('allowed_contacts', [])),
+                ]
+
+    @classmethod
+    def write(cls, *args):
+        super().write(*args)
+        pool = Pool()
+        Activity = pool.get('activity.activity')
+        User = pool.get('res.user')
+        Party = pool.get('party.party')
+        activity = Activity()
+        activities_to_save = []
+        timesheet_lines = []
+        actions = iter(args)
+        for records, values in zip(actions, actions):
+            for record in records:
+                activity_contact = []
+                if values.get('activity_contact'):
+                    activity_contact = [('add', [values['activity_contact']])]
+
+                # Check if we have any of the fields nedded to create an
+                # activity
+                create_activity = False
+                for field in ['activity_text', 'activity_type',
+                        'activity_state', 'activity_contact',
+                        'activity_work_time']:
+                    if values.get(field):
+                        create_activity = True
+                        break
+                if create_activity:
+                    user = User(Transaction().user)
+                    employee = user.employee
+
+                    subject = None
+                    if values.get('activity_subject'):
+                        subject = values.get('activity_subject')
+
+                    dtstart = datetime.now()
+                    dttime = Activity.utc_to_local(dtstart)
+                    if values.get('activity_date'):
+                        dtstart = values.get('activity_date')
+                        dttime = Activity.utc_to_local(dtstart)
+
+                    contacts = []
+                    if 'activity_contact' in values:
+                        contacts = Party.search([('id', '=',
+                            values['activity_contact']
+                            if values['activity_contact'] else None)])
+                    activity.description = values.get('activity_text') or ''
+                    activity.activity_type = values.get('activity_type')
+                    activity.resource = record
+                    activity.employee = employee
+                    activity.state = values.get('activity_state') or 'done'
+                    activity.date = dtstart.date()
+                    activity.time = dttime.time()
+                    activity.party = record.party
+                    activity.contacts = tuple(set(contacts))
+                    activity.subject = subject
+                    activity.duration = values.get('activity_work_time')
+                    activities_to_save.append(activity)
+
+                    values['activity_text'] = None
+                    values['activity_type'] = None
+                    values['activity_contact'] = None
+                    values['activity_state'] = None
+                    values['activity_work_time'] = None
+                    values['activity_subject'] = None
+                    values['activity_date'] = None
+
+        super().write(*args)
+        if activities_to_save:
+            for activity in activities_to_save:
+                if hasattr(activity.resource, 'contacts'):
+                    activity.contacts += tuple(activity.resource.contacts)
+                activity.contacts = tuple(set(activity.contacts))
+            Activity.save(activities_to_save)
+            Activity.send_mail_auto(activities_to_save)
+
+    @fields.depends('activity_type', 'activity_work_time', 'activity_text')
+    def on_change_activity_type(self):
+        if not self.activity_type:
+            return
+        if not self.activity_text and self.activity_type.default_description:
+            self.activity_text = self.activity_type.default_description
+        if self.activity_work_time:
+            return
+        else:
+            self.activity_work_time = self.activity_type.default_duration
+
+
+class ActivityType(metaclass=PoolMeta):
+    'Activity Type'
+    __name__ = "activity.type"
+
+    send_mail_automatically = fields.Boolean("Send Mail Automatically")

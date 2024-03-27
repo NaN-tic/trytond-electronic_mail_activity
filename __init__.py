@@ -13,6 +13,7 @@ def register():
         electronic_mail.ElectronicMail,
         user.User,
         configuration.Configuration,
+        activity.ActivityType,
         module='electronic_mail_activity', type_='model')
     Pool.register(
         activity.ActivityReplyMail,
