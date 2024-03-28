@@ -40,8 +40,8 @@ class Activity(metaclass=PoolMeta):
     #related_activity = fields.Many2One('activity.activity', 'Related activity',
     #    domain=[('id', 'in', Eval('resource.activities', []))])
     related_activity = fields.Many2One('activity.activity', 'Related activity')
-    mail_content = fields.Function(fields.Binary('Mail Content', filename='filename', states={'invisible': ~Bool(Eval('have_mail'))}),
-        'get_mail_content')
+    mail_content = fields.Function(fields.Binary('Mail Content', filename='filename',
+        states={'invisible': ~Bool(Eval('have_mail'))}), 'get_mail_content')
     filename = fields.Function(fields.Char("File Name"), 'get_filename')
 
     @classmethod
