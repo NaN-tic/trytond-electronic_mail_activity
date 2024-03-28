@@ -21,6 +21,13 @@
             <field name="inherit" ref="activity.activity_activity_form_view"/>
             <field name="name">activity_activity_form</field>
         </record>
+
+        <record model="ir.ui.view" id="activity_type_view_form">
+            <field name="model">activity.type</field>
+            <field name="inherit" ref="activity.activity_type_form_view"/>
+            <field name="name">activity_type_form</field>
+        </record>
+
         <record model="ir.ui.view" id="activity_activity_tree_view">
             <field name="model">activity.activity</field>
             <field name="inherit" ref="activity.activity_activity_tree_view"/>
