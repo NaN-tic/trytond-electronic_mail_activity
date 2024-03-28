@@ -500,7 +500,6 @@ class SendActivityMailMixin():
 
     @classmethod
     def write(cls, *args):
-        super().write(*args)
         pool = Pool()
         Activity = pool.get('activity.activity')
         User = pool.get('res.user')
