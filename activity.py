@@ -12,11 +12,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 import mimetypes
-from trytond.modules.electronic_mail.electronic_mail import _make_header
 import logging
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
 from trytond.config import config
+from trytond.modules.electronic_mail.electronic_mail import _make_header
+from trytond.modules.widgets import tools
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -519,54 +520,55 @@ class SendActivityMailMixin():
                 if values.get('activity_contact'):
                     activity_contact = [('add', [values['activity_contact']])]
 
-                # Check if we have any of the fields nedded to create an
-                # activity
                 create_activity = False
-                for field in ['activity_text', 'activity_type',
-                        'activity_state', 'activity_contact',
-                        'activity_work_time']:
+                for field in ['activity_type', 'activity_state',
+                        'activity_contact', 'activity_work_time']:
                     if values.get(field):
                         create_activity = True
                         break
-                if create_activity:
-                    user = User(Transaction().user)
-                    employee = user.employee
+                if tools.has_content(values.get('activity_text')):
+                    create_activity = True
+                if not create_activity:
+                    continue
 
-                    subject = None
-                    if values.get('activity_subject'):
-                        subject = values.get('activity_subject')
+                user = User(Transaction().user)
+                employee = user.employee
 
-                    dtstart = datetime.now()
+                subject = None
+                if values.get('activity_subject'):
+                    subject = values.get('activity_subject')
+
+                dtstart = datetime.now()
+                dttime = Activity.utc_to_local(dtstart)
+                if values.get('activity_date'):
+                    dtstart = values.get('activity_date')
                     dttime = Activity.utc_to_local(dtstart)
-                    if values.get('activity_date'):
-                        dtstart = values.get('activity_date')
-                        dttime = Activity.utc_to_local(dtstart)
 
-                    contacts = []
-                    if 'activity_contact' in values:
-                        contacts = Party.search([('id', '=',
-                            values['activity_contact']
-                            if values['activity_contact'] else None)])
-                    activity.description = values.get('activity_text') or ''
-                    activity.activity_type = values.get('activity_type')
-                    activity.resource = record
-                    activity.employee = employee
-                    activity.state = values.get('activity_state') or 'done'
-                    activity.date = dtstart.date()
-                    activity.time = dttime.time()
-                    activity.party = record.party
-                    activity.contacts = tuple(set(contacts))
-                    activity.subject = subject
-                    activity.duration = values.get('activity_work_time')
-                    activities_to_save.append(activity)
+                contacts = []
+                if 'activity_contact' in values:
+                    contacts = Party.search([('id', '=',
+                        values['activity_contact']
+                        if values['activity_contact'] else None)])
+                activity.description = values.get('activity_text') or ''
+                activity.activity_type = values.get('activity_type')
+                activity.resource = record
+                activity.employee = employee
+                activity.state = values.get('activity_state') or 'done'
+                activity.date = dtstart.date()
+                activity.time = dttime.time()
+                activity.party = record.party
+                activity.contacts = tuple(set(contacts))
+                activity.subject = subject
+                activity.duration = values.get('activity_work_time')
+                activities_to_save.append(activity)
 
-                    values['activity_text'] = None
-                    values['activity_type'] = None
-                    values['activity_contact'] = None
-                    values['activity_state'] = None
-                    values['activity_work_time'] = None
-                    values['activity_subject'] = None
-                    values['activity_date'] = None
+                values['activity_text'] = None
+                values['activity_type'] = None
+                values['activity_contact'] = None
+                values['activity_state'] = None
+                values['activity_work_time'] = None
+                values['activity_subject'] = None
+                values['activity_date'] = None
 
         super().write(*args)
         if activities_to_save:
