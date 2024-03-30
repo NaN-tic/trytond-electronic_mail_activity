@@ -1,6 +1,7 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
 from datetime import datetime
+from html2text import html2text
 from trytond.pool import Pool, PoolMeta
 from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
@@ -176,9 +177,9 @@ class Activity(metaclass=PoolMeta):
             mail = activity.mail
         else:
             # Prepare the mail strucuture
-            mimetype_mail = activity.create_mimetype(user)
+            mime_mail = activity.create_mime_message(user)
             # Create the mail
-            mail = ElectronicMail.create_from_mail(mimetype_mail,
+            mail = ElectronicMail.create_from_mail(mime_mail,
                 user.mailbox, activity)
         if not mail:
             return
@@ -223,7 +224,7 @@ class Activity(metaclass=PoolMeta):
 
         return True
 
-    def create_mimetype(self, user):
+    def create_mime_message(self, user):
         '''Create a MIMEtype structure from activity values
         :param activity: Object of the activity to send mail
         :param type_: To know if it's a new mail or a reply
@@ -254,11 +255,17 @@ class Activity(metaclass=PoolMeta):
         message['Bcc'] = (user and user.smtp_server and
             user.smtp_server.smtp_email or "")
         message['Subject'] = _make_header(self.subject)
-        plain = self.description.encode('utf-8')
+
+        content = self.description
         if user.add_signature and user.signature:
-            signature = user.signature.encode('utf-8')
-            plain = '%s\n--\n%s' % (plain, signature)
-        message.attach(MIMEText(plain, 'plain', _charset='utf-8'))
+            signature = tools.text_to_js('\n--\n%s' % user.signature)
+            content = tools.js_plus_js(content, signature)
+        content = tools.js_to_html(content)
+
+        body = MIMEMultipart('alternative')
+        body.attach(MIMEText(html2text(content), 'plain', _charset='utf-8'))
+        body.attach(MIMEText(content, 'html', _charset='utf-8'))
+        message.attach(body)
 
         # Attach reports
         attachs = Attachment.search([
