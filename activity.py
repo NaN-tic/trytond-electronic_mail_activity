@@ -269,33 +269,29 @@ class Activity(metaclass=PoolMeta):
         if user.add_signature and user.signature:
             signature = tools.text_to_js('\n--\n%s' % user.signature)
             content = tools.js_plus_js(content, signature)
-        content = tools.js_to_html(content)
+        content = tools.js_to_html(content, url_prefix='cid:')
 
         body = MIMEMultipart('alternative')
         body.attach(MIMEText(html2text(content), 'plain', _charset='utf-8'))
         body.attach(MIMEText(content, 'html', _charset='utf-8'))
         message.attach(body)
 
-        # Attach reports
-        attachs = Attachment.search([
-            ('resource', '=', str(self)),
-            ])
-        if attachs:
-            for attach in attachs:
-                filename = attach.name
-                data = attach.data
-                content_type, encoding = mimetypes.guess_type(filename)
-                maintype, subtype = (
-                    content_type or 'application/octet-stream'
-                    ).split('/', 1)
-                attachment = MIMEBase(maintype, subtype)
-                attachment.set_payload(data)
-                encoders.encode_base64(attachment)
-                attachment.add_header(
-                    'Content-Disposition', 'attachment', filename=filename)
-                attachment.add_header(
-                    'Content-Transfer-Encoding', 'base64')
-                message.attach(attachment)
+        attachments = Attachment.search([
+                ('resource', '=', str(self)),
+                ])
+        for attachment in attachments:
+            content_type, encoding = mimetypes.guess_type(attachment.name)
+            maintype, subtype = (content_type or 'application/octet-stream'
+                ).split('/', 1)
+            part = MIMEBase(maintype, subtype)
+            part.set_payload(attachment.data)
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', 'attachment',
+                filename=attachment.name)
+            part.add_header('Content-Transfer-Encoding', 'base64')
+            cid = tools.cid_from_attachment(attachment)
+            part.add_header('Content-ID', f'<{cid}>')
+            message.attach(part)
         return message
 
     @classmethod
