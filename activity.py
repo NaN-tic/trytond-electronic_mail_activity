@@ -68,6 +68,15 @@ class Activity(metaclass=PoolMeta):
                     },
             })
 
+    @classmethod
+    def copy(cls, activities, default=None):
+        if default is None:
+            default = {}
+        else:
+            default = default.copy()
+        default.setdefault('mail')
+        return super().copy(activities, default=default)
+
     @property
     def message_id(self):
         return self.mail and self.mail.message_id or make_msgid()
