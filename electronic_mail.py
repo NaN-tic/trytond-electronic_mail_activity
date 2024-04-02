@@ -1,16 +1,9 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
-from trytond.pool import Pool, PoolMeta
 from email import message_from_bytes
 from trytond.config import config
-import logging
-
-try:
-    from html2text import html2text
-except ImportError:
-    message = "Unable to import html2text and it's needed."
-    logging.getLogger('MailObj').error(message)
-    raise Exception(message)
+from trytond.pool import Pool, PoolMeta
+from trytond.modules.widgets import tools
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -46,14 +39,9 @@ class ElectronicMail(metaclass=PoolMeta):
             activity.employee = employee
             activity.dtstart = mail.date
             if mail.body_plain:
-                description = mail.body_plain
+                activity.description = tools.text_to_js(mail.body_plain)
             elif mail.body_html:
-                description = html2text(mail.body_html)
-            else:
-                description = None
-            if description:
-                activity.description = description.replace('\r', '').replace(
-                    '<br/>', '\n')
+                activity.description = tools.html_to_js(mail.body_html)
             activity.mail = mail
             activity.state = 'planned'
 
