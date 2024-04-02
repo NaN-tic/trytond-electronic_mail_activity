@@ -7,7 +7,7 @@ from trytond.model import fields, ModelView, Unique
 from trytond.transaction import Transaction
 from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
-from email.utils import formataddr, formatdate, make_msgid, parseaddr, getaddresses
+from email.utils import formataddr, formatdate, make_msgid, getaddresses
 from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -442,7 +442,6 @@ class Activity(metaclass=PoolMeta):
     def send_mail_auto(cls, activities):
         User = Pool().get('res.user')
         user = User(Transaction().user)
-        Activity = Pool().get('activity.activity')
         for activity in activities:
             if activity.activity_type.send_mail_automatically:
                 cls.send_mail(activity, user)
@@ -524,14 +523,9 @@ class SendActivityMailMixin():
         Party = pool.get('party.party')
         activity = Activity()
         activities_to_save = []
-        timesheet_lines = []
         actions = iter(args)
         for records, values in zip(actions, actions):
             for record in records:
-                activity_contact = []
-                if values.get('activity_contact'):
-                    activity_contact = [('add', [values['activity_contact']])]
-
                 create_activity = False
                 for field in ['activity_type', 'activity_state',
                         'activity_contact', 'activity_work_time']:
