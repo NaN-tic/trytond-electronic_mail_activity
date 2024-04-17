@@ -37,7 +37,7 @@
         <record model="ir.model.button" id="electronic_mail_new_button">
             <field name="name">new</field>
             <field name="string">Send Mail</field>
-            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+            <field name="model">activity.activity</field>
         </record>
         <record model="ir.model.button-res.group"
             id="activity_new_button_group">
@@ -48,7 +48,7 @@
         <record model="ir.model.button" id="electronic_mail_reply_button">
             <field name="name">reply</field>
             <field name="string">Reply Mail</field>
-            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+            <field name="model">activity.activity</field>
         </record>
         <record model="ir.model.button-res.group"
             id="activity_reply_button_group">
@@ -59,7 +59,7 @@
         <record model="ir.model.button" id="electronic_mail_guess_button">
             <field name="name">guess</field>
             <field name="string">Guess Resource</field>
-            <field name="model" search="[('model', '=', 'activity.activity')]"/>
+            <field name="model">activity.activity</field>
         </record>
         <record model="ir.model.button-res.group"
             id="activity_guess_button_group">
