@@ -388,7 +388,7 @@ class Activity(metaclass=PoolMeta):
         if previous_activity:
             if previous_activity.resource:
                 self.resource = previous_activity.resource
-                if hasattr(self.resource, 'party'):
+                if self.resource and hasattr(self.resource, 'party'):
                     self.party = self.resource.party
                 if not self.party:
                     self.party = self.on_change_with_party()
