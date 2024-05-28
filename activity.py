@@ -455,6 +455,8 @@ class ActivityReplyMail(Wizard, metaclass=PoolMeta):
     open_ = StateAction('activity.act_activity_activity')
 
     def do_open_(self, action):
+        Activity = Pool().get('activity.activity')
+
         re = "Re: "
         return_activities = []
         for activity in self.records:
