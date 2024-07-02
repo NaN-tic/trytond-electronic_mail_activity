@@ -431,13 +431,14 @@ class Activity(metaclass=PoolMeta):
         if isinstance(self.origin, ElectronicMail):
             addresses = [self.origin.from_, self.origin.to, self.origin.cc]
             addresses = self.parse_addresses(addresses)
-            to_add = [contact for x in addresses for contact in self.allowed_contacts if x in contact.email]
+            to_add = [contact for x in addresses for contact in
+                self.allowed_contacts if x == contact.email.strip().lower()]
             self.contacts += tuple(set(to_add))
 
     @classmethod
     def parse_addresses(cls, addresses):
         addresses = getaddresses(addresses)
-        return [x[1].strip() for x in addresses if x[1].strip()]
+        return [x[1].strip().lower() for x in addresses if x[1].strip()]
 
     @classmethod
     def send_mail_auto(cls, activities):
