@@ -205,7 +205,7 @@ class Activity(metaclass=PoolMeta):
         else:
             raise UserError(gettext(
                 'electronic_mail_activity.no_valid_mail',
-                    email=email_to, party=name_to))
+                    mail=email_to, party=name_to))
         if activity.contacts:
             for c in activity.contacts:
                 emails_cc = ElectronicMail.validate_emails(c.email)
@@ -214,7 +214,7 @@ class Activity(metaclass=PoolMeta):
                 else:
                     raise UserError(gettext(
                         'electronic_mail_activity.no_valid_mail',
-                            email=activity.contacts[0].email,
+                            mail=activity.contacts[0].email,
                             party=activity.contacts[0].name))
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
