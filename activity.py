@@ -1,5 +1,7 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
+import mimetypes
+import logging
 from datetime import datetime
 from html2text import html2text
 from trytond.pool import Pool, PoolMeta
@@ -12,8 +14,6 @@ from email import encoders
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
-import mimetypes
-import logging
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
 from trytond.config import config
@@ -21,6 +21,8 @@ from trytond.modules.electronic_mail.electronic_mail import _make_header
 from trytond.modules.widgets import tools
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
+PRODUCTION_ENV = config.getboolean('nantic_connection', 'production', default=False)
+logger = logging.getLogger(__name__)
 
 
 class Cron(metaclass=PoolMeta):
@@ -130,6 +132,10 @@ class Activity(metaclass=PoolMeta):
     @classmethod
     @ModelView.button
     def new(cls, activities):
+        if not PRODUCTION_ENV:
+            logger.warning('Production mode is not enabled.')
+            return
+
         user = cls.check_activity_user_info()
         if user:
             for activity in activities:
@@ -227,7 +233,7 @@ class Activity(metaclass=PoolMeta):
                 'mail': mail.id,
                 })
 
-        logging.getLogger('Activity Mail').info(
+        logger.info(
             'Send email %s from activity %s (to %s)' % (mail.id, activity.id,
                 emails))
 
