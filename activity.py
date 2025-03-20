@@ -21,7 +21,7 @@ from trytond.modules.electronic_mail.electronic_mail import _make_header
 from trytond.modules.widgets import tools
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
-PRODUCTION_ENV = config.getboolean('nantic_connection', 'production', default=False)
+PRODUCTION_ENV = config.getboolean('database', 'production', default=False)
 logger = logging.getLogger(__name__)
 
 
