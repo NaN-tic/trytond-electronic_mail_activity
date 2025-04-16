@@ -122,7 +122,7 @@ class Activity(metaclass=PoolMeta):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
         if isinstance(self.origin, ElectronicMail):
-            return self.origin.preview
+            return (self.origin.preview or '').encode('utf-8')
 
     def get_filename(self, name):
         return 'mail-content.html'
