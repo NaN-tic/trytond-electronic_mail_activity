@@ -3,7 +3,7 @@
 from email import message_from_bytes
 from trytond.config import config
 from trytond.pool import Pool, PoolMeta
-from trytond.modules.widgets import tools
+from html2text import html2text
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -39,9 +39,9 @@ class ElectronicMail(metaclass=PoolMeta):
             activity.employee = employee
             activity.dtstart = mail.date
             if mail.body_plain:
-                activity.description = tools.text_to_js(mail.body_plain)
+                activity.description = mail.body_plain
             elif mail.body_html:
-                activity.description = tools.html_to_js(mail.body_html)
+                activity.description = html2text(mail.body_html)
             activity.mail = mail
             activity.state = 'planned'
 
