@@ -544,9 +544,7 @@ class SendActivityMailMixin():
                 user = User(Transaction().user)
                 employee = user.employee
 
-                subject = None
-                if values.get('activity_subject'):
-                    subject = values.get('activity_subject')
+                subject = values.get('activity_subject') or record.rec_name
 
                 dtstart = datetime.now()
                 dttime = Activity.utc_to_local(dtstart)
