@@ -265,11 +265,9 @@ class Activity(metaclass=PoolMeta):
             user.smtp_server.smtp_email or "")
         message['Subject'] = _make_header(self.subject)
 
-        content = self.description
+        content = self.description or ''
         if user.add_signature and user.signature:
-            signature = tools.text_to_js('\n--\n%s' % user.signature)
-            content = tools.js_plus_js(content, signature)
-        content = tools.js_to_html(content, url_prefix='cid:')
+            content += '\n--\n%s' % user.signature
 
         body = MIMEMultipart('alternative')
         body.attach(MIMEText(html2text(content), 'plain', _charset='utf-8'))
@@ -544,7 +542,9 @@ class SendActivityMailMixin():
                 user = User(Transaction().user)
                 employee = user.employee
 
-                subject = values.get('activity_subject') or record.rec_name
+                subject = None
+                if values.get('activity_subject'):
+                    subject = values.get('activity_subject')
 
                 dtstart = datetime.now()
                 dttime = Activity.utc_to_local(dtstart)
