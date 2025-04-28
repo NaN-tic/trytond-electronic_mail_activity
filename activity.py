@@ -534,8 +534,6 @@ class SendActivityMailMixin():
                     if values.get(field):
                         create_activity = True
                         break
-                if tools.has_content(values.get('activity_text')):
-                    create_activity = True
                 if not create_activity:
                     continue
 
