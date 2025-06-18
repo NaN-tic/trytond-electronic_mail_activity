@@ -10,8 +10,8 @@ from configparser import ConfigParser
 MODULE = 'electronic_mail_activity'
 PREFIX = 'nantic'
 MODULE2PREFIX = {
-    'electronic_mail_wizard',
-    'activity_contact',
+    'electronic_mail_wizard': 'nantic',
+    'activity_contact': 'nantic',
 }
 
 
@@ -80,7 +80,7 @@ setup(name='%s_%s' % (PREFIX, MODULE),
         ],
     package_data={
         'trytond.modules.%s' % MODULE: (info.get('xml', [])
-            + ['tryton.cfg', 'locale/*.po', 'tests/*.rst']),
+            + ['tryton.cfg', 'view/*.xml', 'locale/*.po', 'tests/*.rst']),
         },
     classifiers=[
         'Development Status :: 5 - Production/Stable',
