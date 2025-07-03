@@ -391,36 +391,43 @@ class Activity(metaclass=PoolMeta):
                 if not self.party:
                     self.party = self.on_change_with_party()
         elif self.origin and isinstance(self.origin, ElectronicMail):
-            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
-            addresses = self.parse_addresses(addresses)
-            addresses = self.emails_to_check(addresses)
-            if not addresses:
-                return
-            email = addresses[0]
-            if not email:
-                return
+            res_list = [y[0] for y in Activity.get_resource() if y[0] is not None]
+            if self.origin.resource and self.origin.resource.__name__ in res_list:
+                self.resource = self.origin.resource
+                if hasattr(self.resource, 'party'):
+                    self.party = self.resource.party
 
-            activities = Activity.search([
-                ('party', '!=', None),
-                ['OR',
-                    [
-                        ('origin.from_', 'ilike', '%' + email + '%',
-                            'electronic.mail'),
-                    ], [
-                        ('origin.to', 'ilike', '%' + email + '%',
-                            'electronic.mail'),
+            if not self.party:
+                addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+                addresses = self.parse_addresses(addresses)
+                addresses = self.emails_to_check(addresses)
+                if not addresses:
+                    return
+                email = addresses[0]
+                if not email:
+                    return
+
+                activities = Activity.search([
+                    ('party', '!=', None),
+                    ['OR',
+                        [
+                            ('origin.from_', 'ilike', '%' + email + '%',
+                                'electronic.mail'),
+                        ], [
+                            ('origin.to', 'ilike', '%' + email + '%',
+                                'electronic.mail'),
+                        ],
                     ],
-                ],
-                ], limit=1, order=[('dtstart', 'DESC')])
-            if activities:
-                self.party = activities[0].party
-                return
+                    ], limit=1, order=[('dtstart', 'DESC')])
+                if activities:
+                    self.party = activities[0].party
+                    return
 
-            parties = Party.search([
-                ('contact_mechanisms.value', 'ilike', email),
-                ], limit=1)
-            if parties:
-                self.party = parties[0]
+                parties = Party.search([
+                    ('contact_mechanisms.value', 'ilike', email),
+                    ], limit=1)
+                if parties:
+                    self.party = parties[0]
 
     def guess_contacts(self):
         pool = Pool()
