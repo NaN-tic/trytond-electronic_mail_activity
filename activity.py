@@ -197,8 +197,10 @@ class Activity(metaclass=PoolMeta):
         # If there are no user in main contact or in contacts, we creat And
         # activity for internal reason and we send the mail to the employee.
         emails = []
-        email_to = activity.contacts and activity.contacts[0].email or activity.employee.party.email
-        name_to = activity.contacts and activity.contacts[0].name or activity.employee.party.name
+        email_to = (activity.contacts and activity.contacts[0].party.email or
+                    activity.employee.party.email)
+        name_to = (activity.contacts and activity.contacts[0].party.name or
+                   activity.employee.party.name)
         emails_to = ElectronicMail.validate_emails(email_to)
         if emails_to:
             emails.append(emails_to)
@@ -208,14 +210,14 @@ class Activity(metaclass=PoolMeta):
                     mail=email_to, party=name_to))
         if activity.contacts:
             for c in activity.contacts:
-                emails_cc = ElectronicMail.validate_emails(c.email)
+                emails_cc = ElectronicMail.validate_emails(c.party.email)
                 if emails_cc:
                     emails.append(emails_cc)
                 else:
                     raise UserError(gettext(
                         'electronic_mail_activity.no_valid_mail',
-                            mail=activity.contacts[0].email,
-                            party=activity.contacts[0].name))
+                            mail=activity.contacts[0].party.email,
+                            party=activity.contacts[0].party.name))
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
@@ -255,11 +257,11 @@ class Activity(metaclass=PoolMeta):
                     self.employee.party.email)) or
             formataddr((user.employee.party.name, user.employee.party.email)))
         message['To'] = (self.contacts and formataddr((
-                    _make_header(self.contacts[0].name),
-                    self.contacts[0].email)) or
+                    _make_header(self.contacts[0].party.name),
+                    self.contacts[0].party.email)) or
             formataddr((self.employee.party.name, self.employee.party.email)))
         message['Cc'] = ",".join([
-                formataddr((_make_header(c.name), c.email))
+                formataddr((_make_header(c.party.name), c.party.email))
                 for c in self.contacts])
         message['Bcc'] = (user and user.smtp_server and
             user.smtp_server.smtp_email or "")
@@ -425,12 +427,26 @@ class Activity(metaclass=PoolMeta):
     def guess_contacts(self):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
+        ActivityParty = pool.get('activity.activity-party.party')
 
         if isinstance(self.origin, ElectronicMail):
             addresses = [self.origin.from_, self.origin.to, self.origin.cc]
             addresses = self.parse_addresses(addresses)
-            to_add = [contact for x in addresses for contact in
-                self.allowed_contacts if x == contact.email.strip().lower()]
+            to_add = []
+            for contact in self.allowed_contacts:
+                for x in addresses:
+                    if x == contact.party.email.strip().lower():
+                        activity_contact = ActivityParty.search([
+                            ('activity', '=', self.id),
+                            ('party', '=', contact.party.id),
+                            ], limit=1)
+                        if not activity_contact:
+                            activity_contact = ActivityParty()
+                            activity_contact.activity = self
+                            activity_contact.party = contact.party
+                        else:
+                            activity_contact = activity_contact[0]
+                        to_add.append(activity_contact)
             self.contacts += tuple(set(to_add))
 
     @classmethod
@@ -523,6 +539,7 @@ class SendActivityMailMixin():
         Activity = pool.get('activity.activity')
         User = pool.get('res.user')
         Party = pool.get('party.party')
+        ActivityParty = pool.get('activity.activity-party.party')
         activity = Activity()
         activities_to_save = []
         actions = iter(args)
@@ -552,9 +569,15 @@ class SendActivityMailMixin():
 
                 contacts = []
                 if 'activity_contact' in values:
-                    contacts = Party.search([('id', '=',
+                    parties = Party.search([('id', '=',
                         values['activity_contact']
                         if values['activity_contact'] else None)])
+                for party in parties:
+                    activity_contact = ActivityParty()
+                    activity_contact.activity = activity
+                    activity_contact.party = party
+                    contacts.append(activity_contact)
+
                 activity.description = values.get('activity_text') or ''
                 activity.activity_type = values.get('activity_type')
                 activity.resource = record
@@ -579,9 +602,30 @@ class SendActivityMailMixin():
         super().write(*args)
         if activities_to_save:
             for activity in activities_to_save:
-                if hasattr(activity.resource, 'contacts'):
-                    activity.contacts += tuple(activity.resource.contacts)
-                activity.contacts = tuple(set(activity.contacts))
+                resource = activity.resource
+                if hasattr(resource, 'contacts'):
+                    if resource.contacts:
+                        activity_contacts = []
+                        for contact in contacts:
+                            if isinstance(contact, Party):
+                                party = contact
+                            elif hasattr(contact, 'party'):
+                                party = contact.party
+                            else:
+                                continue
+                            found_contacts = ActivityParty.search([
+                                ('activity', '=', activity.id),
+                                ('party', '=', party.id),
+                                ], limit=1)
+                            if found_contacts:
+                                if found_contacts[0] not in activity.contacts:
+                                    activity_contacts.append(found_contacts[0])
+                            else:
+                                activity_contact = ActivityParty()
+                                activity_contact.activity = activity
+                                activity_contact.party = party
+                                activity_contacts.append(activity_contact)
+                        activity.contacts += tuple(activity_contacts)
             Activity.save(activities_to_save)
             Activity.send_mail_auto(activities_to_save)
 
