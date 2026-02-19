@@ -41,7 +41,7 @@ class ElectronicMail(metaclass=PoolMeta):
             if mail.body_plain:
                 activity.description = mail.body_plain
             elif mail.body_html:
-                activity.description = html2text(str(mail.body_html))
+                activity.description = html2text(mail.body_html)
             activity.mail = mail
             activity.state = 'planned'
 
