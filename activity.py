@@ -91,7 +91,7 @@ class Activity(metaclass=PoolMeta):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
         if isinstance(self.origin, ElectronicMail):
-            return self.origin.body_html
+            return self.origin.body
         return super().get_html(name)
 
     @classmethod
