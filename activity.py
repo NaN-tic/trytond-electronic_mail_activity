@@ -433,7 +433,9 @@ class Activity(metaclass=PoolMeta):
             addresses = [self.origin.from_, self.origin.to, self.origin.cc]
             addresses = self.parse_addresses(addresses)
             to_add = []
-            for contact in self.allowed_contacts:
+            if not self.contacts:
+                return to_add
+            for contact in self.contacts[0].allowed_contacts:
                 for x in addresses:
                     if x == contact.party.email.strip().lower():
                         activity_contact = ActivityParty.search([
