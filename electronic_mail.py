@@ -30,6 +30,9 @@ class ElectronicMail(metaclass=PoolMeta):
         activities = []
         activity_attachments = []
         for mail in mails:
+            exist = Activity.search([('mail', '=', mail.id)])
+            if exist:
+                continue
             if mail.mailbox == processed_mailbox:
                 continue
             activity = Activity()
