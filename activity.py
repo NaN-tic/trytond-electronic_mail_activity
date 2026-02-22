@@ -569,6 +569,7 @@ class SendActivityMailMixin():
                     dtstart = values.get('activity_date')
                     dttime = Activity.utc_to_local(dtstart)
 
+                parties = []
                 contacts = []
                 if 'activity_contact' in values:
                     parties = Party.search([('id', '=',
