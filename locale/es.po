@@ -14,6 +14,10 @@ msgctxt "field:activity.activity,mail:"
 msgid "Related Mail"
 msgstr "Correo relacionado"
 
+msgctxt "field:activity.activity,original_mail_message_id:"
+msgid "Original Mail Message-ID"
+msgstr "Message-ID original del correo"
+
 msgctxt "field:activity.activity,mail_content:"
 msgid "Mail Content"
 msgstr "Contenido del correo"

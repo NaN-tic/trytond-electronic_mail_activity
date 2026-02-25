@@ -38,6 +38,9 @@ class Activity(metaclass=PoolMeta):
 
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
             ondelete='CASCADE')
+    original_mail_message_id = fields.Function(
+        fields.Char('Original Mail Message-ID'),
+        'get_original_mail_message_id')
     have_mail = fields.Function(fields.Boolean('Have mail'), 'get_have_mail')
     related_activity = fields.Many2One('activity.activity', 'Related activity')
     mail_content = fields.Function(fields.Binary('Mail Content', filename='filename',
@@ -83,9 +86,10 @@ class Activity(metaclass=PoolMeta):
 
     @property
     def in_reply_to(self):
-        return self.mail and self.mail.in_reply_to or (self.related_activity
-            and self.related_activity.mail and
-            self.related_activity.mail.message_id or "")
+        if self.mail and self.mail.in_reply_to:
+            return self.mail.in_reply_to
+        previous_mail = self.get_previous_mail()
+        return previous_mail and previous_mail.message_id or ""
 
     def get_html(self, name):
         pool = Pool()
@@ -103,13 +107,37 @@ class Activity(metaclass=PoolMeta):
         result = ""
         if self.mail and self.mail.reference:
             result = self.mail.reference
-        elif self.related_activity and self.related_activity.mail:
-            if self.related_activity.mail.reference:
-                result += self.related_activity.mail.reference or ""
+        else:
+            previous_mail = self.get_previous_mail()
+            if previous_mail and previous_mail.reference:
+                result += previous_mail.reference or ""
             else:
-                result += self.related_activity.mail.in_reply_to or ""
-            result += self.related_activity.mail.message_id or ""
+                result += previous_mail and previous_mail.in_reply_to or ""
+            result += previous_mail and previous_mail.message_id or ""
         return result
+
+    def get_original_mail_message_id(self, name):
+        if self.mail and self.mail.message_id:
+            return self.mail.message_id
+        previous_mail = self.get_previous_mail()
+        return previous_mail and previous_mail.message_id or ""
+
+    def get_previous_mail(self):
+        if self.related_activity and self.related_activity.mail:
+            return self.related_activity.mail
+        if not self.resource:
+            return None
+        domain = [
+            ('resource', '=', str(self.resource)),
+            ('mail', '!=', None),
+            ]
+        if self.id:
+            domain.append(('id', '!=', self.id))
+        activities = self.search(domain, order=[('dtstart', 'DESC'),
+                ('id', 'DESC')], limit=1)
+        if activities:
+            return activities[0].mail
+        return None
 
     @classmethod
     def get_have_mail(cls, activities, name):
@@ -247,11 +275,12 @@ class Activity(metaclass=PoolMeta):
         message['Message-Id'] = self.message_id
         message['Date'] = formatdate(localtime=True)
 
-        # If reply, take from the related activity the message_id and
-        # reference information
-        if self.related_activity:
-            message['In-Reply-To'] = self.in_reply_to
-            message['Reference'] = self.reference
+        in_reply_to = self.in_reply_to
+        if in_reply_to:
+            message['In-Reply-To'] = in_reply_to
+        reference = self.reference
+        if reference:
+            message['Reference'] = reference
         message['From'] = (self.employee and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
