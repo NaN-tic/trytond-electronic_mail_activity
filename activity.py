@@ -455,7 +455,7 @@ class Activity(metaclass=PoolMeta):
                 allowed_parties = list(self.allowed_contacts)
             else:
                 allowed_parties = []
-                if self.company: # TODO: its necessart to check if it has self.company and party?
+                if self.company:
                     allowed_parties = [e.party for e in Employee.search([
                         ('company', '=', self.company.id),
                         ])]
