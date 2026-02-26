@@ -105,12 +105,12 @@ class Activity(metaclass=PoolMeta):
     @property
     def references(self):
         result = ""
-        if self.mail and self.mail.reference:
-            result = self.mail.reference
+        if self.mail and self.mail.references:
+            result = self.mail.references
         else:
             previous_mail = self.get_previous_mail()
-            if previous_mail and previous_mail.reference:
-                result += previous_mail.reference or ""
+            if previous_mail and previous_mail.references:
+                result += previous_mail.references or ""
             else:
                 result += previous_mail and previous_mail.in_reply_to or ""
             result += previous_mail and previous_mail.message_id or ""
