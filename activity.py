@@ -103,7 +103,7 @@ class Activity(metaclass=PoolMeta):
         return super()._get_origin() + ['electronic.mail']
 
     @property
-    def reference(self):
+    def references(self):
         result = ""
         if self.mail and self.mail.reference:
             result = self.mail.reference
@@ -277,8 +277,8 @@ class Activity(metaclass=PoolMeta):
 
         if self.in_reply_to:
             message['In-Reply-To'] = self.in_reply_to
-        if self.reference:
-            message['Reference'] = self.reference
+        if self.references:
+            message['References'] = self.references
         message['From'] = (self.employee and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
