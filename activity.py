@@ -428,68 +428,28 @@ class Activity(metaclass=PoolMeta):
         pool = Pool()
         ElectronicMail = pool.get('electronic.mail')
         ActivityParty = pool.get('activity.activity-party.party')
-        Employee = pool.get('company.employee')
 
         if isinstance(self.origin, ElectronicMail):
-            sender = self.parse_addresses([self.origin.from_])
-            to_addresses = self.parse_addresses([self.origin.to])
-            cc_addresses = self.parse_addresses([self.origin.cc])
-
-            ordered_emails = []
-            if sender:
-                ordered_emails.append(sender[0])
-            ordered_emails += to_addresses + cc_addresses
-            # Deduplicate while preserving order and skip internal addresses.
-            seen = set()
-            filtered_emails = []
-            for email in ordered_emails:
-                if email in seen:
-                    continue
-                seen.add(email)
-                if '@nan-tic.' in email:
-                    continue
-                filtered_emails.append(email)
-
-            # Build a map from email to allowed parties.
-            if hasattr(self, 'allowed_contacts') and self.allowed_contacts:
-                allowed_parties = list(self.allowed_contacts)
-            else:
-                allowed_parties = []
-                if self.company:
-                    allowed_parties = [e.party for e in Employee.search([
-                        ('company', '=', self.company.id),
-                        ])]
-                if self.party:
-                    allowed_parties += [r.to for r in self.party.relations]
-
-            party_by_email = {}
-            for party in allowed_parties:
-                if party.email:
-                    party_by_email[party.email.strip().lower()] = party
-
+            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
+            addresses = self.parse_addresses(addresses)
             to_add = []
-            sequence = 1
-            # Create ordered activity contacts (sequence defines main contact).
-            for email in filtered_emails:
-                party = party_by_email.get(email)
-                if not party:
-                    continue
-                activity_contact = ActivityParty.search([
-                    ('activity', '=', self.id),
-                    ('party', '=', party.id),
-                    ], limit=1)
-                if not activity_contact:
-                    activity_contact = ActivityParty()
-                    activity_contact.activity = self
-                    activity_contact.party = party
-                else:
-                    activity_contact = activity_contact[0]
-                activity_contact.sequence = sequence
-                sequence += 1
-                to_add.append(activity_contact)
-
-            if to_add:
-                self.contacts = tuple(to_add)
+            if not self.contacts:
+                return to_add
+            for contact in self.contacts[0].allowed_contacts:
+                for x in addresses:
+                    if x == contact.party.email.strip().lower():
+                        activity_contact = ActivityParty.search([
+                            ('activity', '=', self.id),
+                            ('party', '=', contact.party.id),
+                            ], limit=1)
+                        if not activity_contact:
+                            activity_contact = ActivityParty()
+                            activity_contact.activity = self
+                            activity_contact.party = contact.party
+                        else:
+                            activity_contact = activity_contact[0]
+                        to_add.append(activity_contact)
+            self.contacts += tuple(set(to_add))
 
     @classmethod
     def parse_addresses(cls, addresses):
