@@ -433,8 +433,6 @@ class Activity(metaclass=PoolMeta):
             addresses = [self.origin.from_, self.origin.to, self.origin.cc]
             addresses = self.parse_addresses(addresses)
             to_add = []
-            # Prefer allowed contacts from the main contact when available,
-            # but fall back to the activity's allowed contacts when empty.
             if self.contacts:
                 allowed_contacts = self.contacts[0].allowed_contacts
             else:
