@@ -432,20 +432,21 @@ class Activity(metaclass=PoolMeta):
         if isinstance(self.origin, ElectronicMail):
             addresses = [self.origin.from_, self.origin.to, self.origin.cc]
             addresses = self.parse_addresses(addresses)
+            emails = self.emails_to_check(addresses)
             to_add = []
             if not self.contacts:
                 return to_add
-            for contact in self.contacts[0].allowed_contacts:
-                for x in addresses:
-                    if x == contact.party.email.strip().lower():
+            for party in self.contacts[0].allowed_contacts:
+                for x in emails:
+                    if x == party.email.strip().lower():
                         activity_contact = ActivityParty.search([
                             ('activity', '=', self.id),
-                            ('party', '=', contact.party.id),
+                            ('party', '=', party.id),
                             ], limit=1)
                         if not activity_contact:
                             activity_contact = ActivityParty()
                             activity_contact.activity = self
-                            activity_contact.party = contact.party
+                            activity_contact.party = party
                         else:
                             activity_contact = activity_contact[0]
                         to_add.append(activity_contact)
