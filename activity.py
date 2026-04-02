@@ -104,21 +104,23 @@ class Activity(metaclass=PoolMeta):
 
     @property
     def references(self):
-        result = ""
         if self.mail and self.mail.references:
-            result = self.mail.references
-        else:
-            previous_mail = self.get_previous_mail()
-            if previous_mail and previous_mail.references:
-                result += previous_mail.references or ""
-            else:
-                result += previous_mail and previous_mail.in_reply_to or ""
-            result += previous_mail and previous_mail.message_id or ""
-        return result
+            return self.mail.references
+
+        previous_mail = self.get_previous_mail()
+        if not previous_mail:
+            return ""
+
+        references = []
+        if previous_mail.references:
+            references = previous_mail.references.split()
+        if not references and previous_mail.in_reply_to:
+            references = [previous_mail.in_reply_to]
+        if previous_mail.message_id and previous_mail.message_id not in references:
+            references.append(previous_mail.message_id)
+        return " ".join(references)
 
     def get_original_mail_message_id(self, name):
-        if self.mail and self.mail.message_id:
-            return self.mail.message_id
         previous_mail = self.get_previous_mail()
         return previous_mail and previous_mail.message_id or ""
 
