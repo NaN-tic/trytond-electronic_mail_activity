@@ -14,9 +14,17 @@ msgctxt "field:activity.activity,mail:"
 msgid "Related Mail"
 msgstr "Correo relacionado"
 
+msgctxt "field:activity.activity,in_reply_to:"
+msgid "In-Reply-To"
+msgstr "In-Reply-To"
+
 msgctxt "field:activity.activity,original_mail_message_id:"
 msgid "Original Mail Message-ID"
 msgstr "Message-ID original del correo"
+
+msgctxt "field:activity.activity,references:"
+msgid "References"
+msgstr "Referencias"
 
 msgctxt "field:activity.activity,mail_content:"
 msgid "Mail Content"

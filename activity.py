@@ -38,6 +38,10 @@ class Activity(metaclass=PoolMeta):
 
     mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
             ondelete='CASCADE')
+    in_reply_to = fields.Function(fields.Char('In-Reply-To'),
+        'get_in_reply_to')
+    references = fields.Function(fields.Char('References'),
+        'get_references')
     original_mail_message_id = fields.Function(
         fields.Char('Original Mail Message-ID'),
         'get_original_mail_message_id')
@@ -84,12 +88,9 @@ class Activity(metaclass=PoolMeta):
     def message_id(self):
         return self.mail and self.mail.message_id or make_msgid()
 
-    @property
-    def in_reply_to(self):
-        if self.mail and self.mail.in_reply_to:
-            return self.mail.in_reply_to
-        previous_mail = self.get_previous_mail()
-        return previous_mail and previous_mail.message_id or ""
+    def get_in_reply_to(self, name):
+        thread_mail = self.mail or self.get_previous_mail()
+        return thread_mail and thread_mail.message_id or ""
 
     def get_html(self, name):
         pool = Pool()
@@ -102,27 +103,23 @@ class Activity(metaclass=PoolMeta):
     def _get_origin(cls):
         return super()._get_origin() + ['electronic.mail']
 
-    @property
-    def references(self):
-        if self.mail and self.mail.references:
-            return self.mail.references
-
-        previous_mail = self.get_previous_mail()
-        if not previous_mail:
+    def get_references(self, name):
+        thread_mail = self.mail or self.get_previous_mail()
+        if not thread_mail:
             return ""
 
         references = []
-        if previous_mail.references:
-            references = previous_mail.references.split()
-        if not references and previous_mail.in_reply_to:
-            references = [previous_mail.in_reply_to]
-        if previous_mail.message_id and previous_mail.message_id not in references:
-            references.append(previous_mail.message_id)
+        if thread_mail.references:
+            references = thread_mail.references.split()
+        elif thread_mail.in_reply_to:
+            references = [thread_mail.in_reply_to]
+        if thread_mail.message_id and thread_mail.message_id not in references:
+            references.append(thread_mail.message_id)
         return " ".join(references)
 
     def get_original_mail_message_id(self, name):
-        previous_mail = self.get_previous_mail()
-        return previous_mail and previous_mail.message_id or ""
+        thread_mail = self.mail or self.get_previous_mail()
+        return thread_mail and thread_mail.message_id or ""
 
     def get_previous_mail(self):
         if self.related_activity and self.related_activity.mail:
@@ -277,10 +274,12 @@ class Activity(metaclass=PoolMeta):
         message['Message-Id'] = self.message_id
         message['Date'] = formatdate(localtime=True)
 
-        if self.in_reply_to:
-            message['In-Reply-To'] = self.in_reply_to
-        if self.references:
-            message['References'] = self.references
+        in_reply_to = self.get_in_reply_to(None)
+        references = self.get_references(None)
+        if in_reply_to:
+            message['In-Reply-To'] = in_reply_to
+        if references:
+            message['References'] = references
         message['From'] = (self.employee and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
