@@ -274,12 +274,10 @@ class Activity(metaclass=PoolMeta):
         message['Message-Id'] = self.message_id
         message['Date'] = formatdate(localtime=True)
 
-        in_reply_to = self.get_in_reply_to(None)
-        references = self.get_references(None)
-        if in_reply_to:
-            message['In-Reply-To'] = in_reply_to
-        if references:
-            message['References'] = references
+        if self.in_reply_to:
+            message['In-Reply-To'] = self.in_reply_to
+        if self.references:
+            message['References'] = self.references
         message['From'] = (self.employee and formataddr((
                     _make_header(self.employee.party.name),
                     self.employee.party.email)) or
