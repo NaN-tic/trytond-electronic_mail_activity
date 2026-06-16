@@ -184,10 +184,11 @@ class Activity(metaclass=PoolMeta):
             activity.save()
 
     @classmethod
-    def check_activity_user_info(cls):
+    def check_activity_user_info(cls, user=None):
         "Check if user have deffined the a server and a mailbox"
         User = Pool().get('res.user')
-        user = User(Transaction().user)
+        if user is None:
+            user = User(Transaction().user)
         if user and user.smtp_server:
             if user.mailbox:
                 return user
@@ -209,6 +210,7 @@ class Activity(metaclass=PoolMeta):
         """
         ElectronicMail = Pool().get('electronic.mail')
 
+        user = cls.check_activity_user_info(user)
         if activity.mail:
             mail = activity.mail
         else:
