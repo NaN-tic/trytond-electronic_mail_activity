@@ -1,7 +1,7 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
 from email import message_from_bytes
-from trytond.config import config
+import trytond.config as config
 from trytond.pool import Pool, PoolMeta
 from html2text import html2text
 

@@ -16,7 +16,7 @@ import mimetypes
 import logging
 from trytond.i18n import gettext
 from trytond.exceptions import UserError
-from trytond.config import config
+import trytond.config as config
 from trytond.modules.electronic_mail.electronic_mail import _make_header
 from trytond.modules.widgets import tools
 
