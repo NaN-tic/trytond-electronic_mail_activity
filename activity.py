@@ -9,6 +9,8 @@ from trytond.wizard import Wizard, StateAction
 from trytond.pyson import Eval, Bool
 from email.utils import formataddr, formatdate, make_msgid, getaddresses
 from email import encoders
+from email import message_from_bytes
+from email.policy import default
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
@@ -19,6 +21,7 @@ from trytond.exceptions import UserError
 import trytond.config as config
 from trytond.modules.electronic_mail.electronic_mail import _make_header
 from trytond.modules.widgets import tools
+from .mail import HeaderText, forwarded_headers
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -404,81 +407,133 @@ class Activity(metaclass=PoolMeta):
                 ])
 
         mails = [x.value.lower().strip() for x in contact_mechanisms]
-        return list(set([x for x in emails if x.lower().strip() not in mails]))
+        return list(dict.fromkeys(x.lower().strip() for x in emails
+                if x.strip() and x.lower().strip() not in mails))
 
-    def guess_resource(self):
-        pool = Pool()
-        ElectronicMail = pool.get('electronic.mail')
-        Activity = pool.get('activity.activity')
-        Party = pool.get('party.party')
+    def get_mail_participants(self):
+        """Return effective headers, following internal forwarding envelopes."""
+        Mail = Pool().get('electronic.mail')
+        mail = self.origin if isinstance(self.origin, Mail) else self.mail
+        if not mail:
+            return
+        headers = {'from': mail.from_ or '', 'to': mail.to or '',
+            'cc': mail.cc or '', 'subject': mail.subject or ''}
+        sender = self.parse_addresses([headers['from']])
+        recipients = self.parse_addresses([headers['to']])
+        if not (sender and recipients
+                and not self.emails_to_check(sender + recipients)):
+            return headers
 
-        previous_activity = self.get_previous_activity()
-        if previous_activity:
-            if previous_activity.resource:
-                self.resource = previous_activity.resource
-                if self.resource and hasattr(self.resource, 'party'):
-                    self.party = self.resource.party
-                if not self.party:
-                    self.party = self.on_change_with_party()
-        elif self.origin and isinstance(self.origin, ElectronicMail):
-            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
-            addresses = self.parse_addresses(addresses)
-            addresses = self.emails_to_check(addresses)
-            if not addresses:
-                return
-            email = addresses[0]
-            if not email:
-                return
+        plain = mail.body_plain or ''
+        html = mail.body_html or ''
+        if not plain and not html and mail.mail_file:
+            message = message_from_bytes(bytes(mail.mail_file), policy=default)
+            for part in message.walk():
+                if part.get_content_disposition() == 'attachment':
+                    continue
+                if part.get_content_type() == 'text/plain' and not plain:
+                    plain = part.get_content()
+                elif part.get_content_type() == 'text/html' and not html:
+                    html = part.get_content()
+        texts = [plain]
+        if html:
+            parser = HeaderText()
+            if isinstance(html, bytes):
+                html = html.decode('utf-8', errors='replace')
+            parser.feed(html)
+            texts.append(''.join(parser.parts))
+        for text in texts:
+            for original in forwarded_headers(text):
+                addresses = self.parse_addresses([original['from']])
+                if addresses and self.emails_to_check(addresses):
+                    return original
+        return headers
 
-            activities = Activity.search([
-                ('party', '!=', None),
-                ['OR',
-                    [
+    def get_mail_contacts(self, headers):
+        """Find every matching email mechanism, preserving header priority."""
+        Mechanism = Pool().get('party.contact_mechanism')
+        emails = self.emails_to_check(self.parse_addresses([
+                    headers.get(key, '') for key in ('from', 'to', 'cc')]))
+        if not emails:
+            return {}
+        # Contact values may have surrounding whitespace from older imports.
+        mechanisms = Mechanism.search([
+                ('type', '=', 'email'),
+                ['OR'] + [('value', 'ilike', '%' + email.replace(
+                            '\\', '\\\\').replace('%', '\\%').replace(
+                            '_', '\\_') + '%') for email in emails],
+                ])
+        contacts = {email: [] for email in emails}
+        for mechanism in mechanisms:
+            email = (mechanism.value or '').strip().lower()
+            if email in contacts and mechanism.party not in contacts[email]:
+                contacts[email].append(mechanism.party)
+        return contacts
+
+    def get_mail_resource(self, headers):
+        """Reuse the resource of a previous activity in the same company."""
+        previous = self.get_previous_activity()
+        if previous and previous.company == self.company:
+            return previous.resource
+
+    def get_previous_mail_party(self, contacts):
+        """Find the latest historical association in participant order."""
+        for email in contacts:
+            activities = self.search([
+                    ('id', '!=', self.id),
+                    ('company', '=', self.company.id),
+                    ('party', '!=', None),
+                    ['OR',
                         ('origin.from_', 'ilike', '%' + email + '%',
                             'electronic.mail'),
-                    ], [
                         ('origin.to', 'ilike', '%' + email + '%',
                             'electronic.mail'),
-                    ],
-                ],
-                ], limit=1, order=[('dtstart', 'DESC')])
+                        ('origin.cc', 'ilike', '%' + email + '%',
+                            'electronic.mail')],
+                    ], order=[('dtstart', 'DESC'), ('id', 'DESC')], limit=1)
             if activities:
-                self.party = activities[0].party
+                return activities[0].party
+
+    def get_mail_party(self, contacts):
+        """Resolve a party from history or an unambiguous email match."""
+        party = self.get_previous_mail_party(contacts)
+        if party:
+            return party
+        for parties in contacts.values():
+            if len(parties) == 1:
+                return parties[0]
+            if parties:
                 return
 
-            parties = Party.search([
-                ('contact_mechanisms.value', 'ilike', email),
-                ], limit=1)
-            if parties:
-                self.party = parties[0]
+    def guess_resource(self):
+        if self.resource:
+            return
+        headers = self.get_mail_participants()
+        if headers is None:
+            return
+        resource = self.get_mail_resource(headers)
+        if resource:
+            self.resource = resource
+            self.party = self.on_change_with_party()
+        elif not self.party:
+            self.party = self.get_mail_party(self.get_mail_contacts(headers))
 
     def guess_contacts(self):
-        pool = Pool()
-        ElectronicMail = pool.get('electronic.mail')
-        ActivityParty = pool.get('activity.activity-party.party')
-
-        if isinstance(self.origin, ElectronicMail):
-            addresses = [self.origin.from_, self.origin.to, self.origin.cc]
-            addresses = self.parse_addresses(addresses)
-            emails = self.emails_to_check(addresses)
-            to_add = []
-            if not self.contacts:
-                return to_add
-            for party in self.contacts[0].allowed_contacts:
-                for x in emails:
-                    if x == party.email.strip().lower():
-                        activity_contact = ActivityParty.search([
-                            ('activity', '=', self.id),
-                            ('party', '=', party.id),
-                            ], limit=1)
-                        if not activity_contact:
-                            activity_contact = ActivityParty()
-                            activity_contact.activity = self
-                            activity_contact.party = party
-                        else:
-                            activity_contact = activity_contact[0]
-                        to_add.append(activity_contact)
-            self.contacts += tuple(set(to_add))
+        headers = self.get_mail_participants()
+        if headers is None:
+            return
+        ActivityParty = Pool().get('activity.activity-party.party')
+        contact = ActivityParty(activity=self, company=self.company)
+        allowed = set(contact.on_change_with_allowed_contacts())
+        existing = {contact.party for contact in self.contacts}
+        additions = []
+        for parties in self.get_mail_contacts(headers).values():
+            for party in parties:
+                if party.id in allowed and party not in existing:
+                    additions.append(ActivityParty(
+                            activity=self, party=party, company=self.company))
+                    existing.add(party)
+        self.contacts += tuple(additions)
 
     @classmethod
     def parse_addresses(cls, addresses):
