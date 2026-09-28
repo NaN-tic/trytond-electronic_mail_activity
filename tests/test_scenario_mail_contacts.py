@@ -4,8 +4,10 @@ from email.message import EmailMessage
 
 from proteus import Model
 from trytond.modules.company.tests.tools import create_company, get_company
+from trytond.pool import Pool
 from trytond.tests.test_tryton import drop_db
 from trytond.tests.tools import activate_modules, set_user
+from trytond.transaction import Transaction
 
 
 class TestMailContacts(unittest.TestCase):
@@ -69,7 +71,8 @@ class TestMailContacts(unittest.TestCase):
             'De: Sender <SENDER@example.com>\nDate: Wednesday\n'
             'Subject: Original request\nTo: staff@internal.example\n'
             'Cc: Copy <copy@example.com>\n\n')
-        for mode in ['direct', 'plain', 'html', 'nested', 'internal']:
+        for mode in ['direct', 'plain', 'html', 'nested', 'internal',
+                'wrapped', 'wrapped_html', 'missing_recipients']:
             with self.subTest(mode=mode):
                 message = EmailMessage()
                 message['From'] = ('sender@example.com' if mode == 'direct'
@@ -85,11 +88,25 @@ class TestMailContacts(unittest.TestCase):
                     body = ('---------- Forwarded message ---------\n'
                         'From: staff@internal.example\n'
                         'To: support@internal.example\n\n' + body)
-                if mode == 'html':
+                elif mode in {'wrapped', 'wrapped_html'}:
+                    body = ('---------- Forwarded message ---------\n'
+                        'De: Sender | Customer <sender@example.com>\n'
+                        'Date: Monday\n'
+                        'Subject: Closing in September but production in\n'
+                        'OCTOBER\nTo: staff@internal.example\n'
+                        'Cc: Copy | Customer <copy@example.com>\n\n'
+                        'Reply\nSignature signature@example.com')
+                elif mode == 'missing_recipients':
+                    body = ('---------- Forwarded message ---------\n'
+                        'From: Sender | Customer <sender@example.com>\n'
+                        'Subject: Request without recipient headers\n\n'
+                        'Reply\nSignature signature@example.com')
+                is_html = mode in {'html', 'wrapped_html'}
+                if is_html:
                     body = body.replace('<', '&lt;').replace('>', '&gt;')
                     body = '<div>' + body.replace('\n', '<br>') + '</div>'
                 message.set_content(body,
-                    subtype='html' if mode == 'html' else 'plain',
+                    subtype='html' if is_html else 'plain',
                     cte='quoted-printable')
                 mail = Mail(mailbox=mailbox, from_=str(message['From']),
                     to=str(message['To']), cc=str(message.get('Cc', '')),
@@ -102,8 +119,19 @@ class TestMailContacts(unittest.TestCase):
                 activity.save()
                 self.assertFalse(activity.contacts)
                 activity.click('guess')
+                expected = contacts[:2]
+                if mode == 'internal':
+                    expected = []
+                elif mode == 'missing_recipients':
+                    expected = contacts[:1]
                 self.assertEqual([c.party for c in activity.contacts],
-                    [] if mode == 'internal' else contacts[:2])
+                    expected)
                 activity.click('guess')
-                self.assertEqual(len(activity.contacts),
-                    0 if mode == 'internal' else 2)
+                self.assertEqual(len(activity.contacts), len(expected))
+                if mode in {'wrapped', 'wrapped_html'}:
+                    with Transaction().start(config.database_name, config.user,
+                            readonly=True, context=config.context):
+                        record = Pool().get('activity.activity')(activity.id)
+                        headers = record.get_mail_participants()
+                        self.assertEqual(headers['subject'],
+                            'Closing in September but production in OCTOBER')

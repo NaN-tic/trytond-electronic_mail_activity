@@ -58,7 +58,8 @@ def forwarded_headers(text):
         if sep and key:
             headers[key] = value.strip()
             previous = key
-        elif raw[:1].isspace() and previous:
+        elif previous and (raw[:1].isspace() or previous == 'subject'):
+            # Inline forwards can wrap subjects without RFC header indentation.
             headers[previous] += ' ' + line
         else:
             if headers.get('from'):

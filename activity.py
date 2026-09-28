@@ -537,7 +537,8 @@ class Activity(metaclass=PoolMeta):
 
     @classmethod
     def parse_addresses(cls, addresses):
-        addresses = getaddresses(addresses)
+        # Empty headers can invalidate otherwise valid addresses in strict mode.
+        addresses = getaddresses([x for x in addresses if x and x.strip()])
         return [x[1].strip().lower() for x in addresses if x[1].strip()]
 
     @classmethod
