@@ -72,18 +72,31 @@ class TestMailContacts(unittest.TestCase):
             'Subject: Original request\nTo: staff@internal.example\n'
             'Cc: Copy <copy@example.com>\n\n')
         for mode in ['direct', 'plain', 'html', 'nested', 'internal',
-                'wrapped', 'wrapped_html', 'missing_recipients']:
+                'wrapped', 'wrapped_html', 'missing_recipients',
+                'mailing_list', 'external_reply_to']:
             with self.subTest(mode=mode):
                 message = EmailMessage()
-                message['From'] = ('sender@example.com' if mode == 'direct'
+                message['From'] = ('sender@example.com'
+                    if mode in {'direct', 'external_reply_to'}
                     else 'staff@internal.example')
                 message['To'] = 'support@internal.example'
                 message['Subject'] = 'Customer request'
-                if mode == 'direct':
+                if mode in {'direct', 'external_reply_to'}:
                     message['Cc'] = 'copy@example.com, sender@example.com'
+                if mode == 'mailing_list':
+                    message.replace_header('From',
+                        'Sender via Support <support@internal.example>')
+                    message.replace_header('To',
+                        'staff@internal.example, copy@example.com')
+                    message['Reply-To'] = 'Sender | Customer <sender@example.com>'
+                elif mode == 'external_reply_to':
+                    message['Reply-To'] = 'signature@example.com'
                 body = header + 'Reply\nSignature signature@example.com'
                 if mode == 'internal':
                     body = 'Mention sender@example.com in ordinary text'
+                    message['Reply-To'] = 'staff@internal.example'
+                elif mode in {'mailing_list', 'external_reply_to'}:
+                    body = 'Reply\nSignature signature@example.com'
                 elif mode == 'nested':
                     body = ('---------- Forwarded message ---------\n'
                         'From: staff@internal.example\n'
@@ -110,6 +123,7 @@ class TestMailContacts(unittest.TestCase):
                     cte='quoted-printable')
                 mail = Mail(mailbox=mailbox, from_=str(message['From']),
                     to=str(message['To']), cc=str(message.get('Cc', '')),
+                    reply_to=str(message.get('Reply-To', '')),
                     subject=str(message['Subject']),
                     date=datetime.datetime.now(), mail_file=message.as_bytes())
                 mail.save()

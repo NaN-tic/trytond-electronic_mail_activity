@@ -420,6 +420,13 @@ class Activity(metaclass=PoolMeta):
             'cc': mail.cc or '', 'subject': mail.subject or ''}
         sender = self.parse_addresses([headers['from']])
         recipients = self.parse_addresses([headers['to']])
+        # Mailing lists can replace From with an internal group address while
+        # retaining the external author in Reply-To, even with external To/CC.
+        reply_to = self.parse_addresses([mail.reply_to or ''])
+        if (sender and not self.emails_to_check(sender)
+                and self.emails_to_check(reply_to)):
+            headers['from'] = mail.reply_to
+            return headers
         if not (sender and recipients
                 and not self.emails_to_check(sender + recipients)):
             return headers
