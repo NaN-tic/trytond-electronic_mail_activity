@@ -39,7 +39,8 @@ class Cron(metaclass=PoolMeta):
 class Activity(metaclass=PoolMeta):
     __name__ = 'activity.activity'
 
-    mail = fields.Many2One('electronic.mail', "Related Mail", readonly=True,
+    mail = fields.Many2One('electronic.mail', "Related Mail",
+            states={'editable': False},
             ondelete='CASCADE')
     in_reply_to = fields.Function(fields.Char('In-Reply-To'),
         'get_in_reply_to')
