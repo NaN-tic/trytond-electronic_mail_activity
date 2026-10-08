@@ -21,7 +21,7 @@ from trytond.exceptions import UserError
 import trytond.config as config
 from trytond.modules.electronic_mail.electronic_mail import _make_header
 from trytond.modules.widgets import tools
-from .mail import HeaderText, forwarded_headers
+from .mail import HeaderText, forwarded_headers, match_contact_name
 
 QUEUE_NAME = config.get('electronic_mail', 'queue_name', default='default')
 
@@ -457,11 +457,30 @@ class Activity(metaclass=PoolMeta):
                     return original
         return headers
 
+    @classmethod
+    def get_mail_addresses(cls, headers):
+        """Keep display names and source headers in participant priority order."""
+        addresses = {}
+        for source in ('from', 'to', 'cc'):
+            value = headers.get(source)
+            if not value:
+                continue
+            for name, email in getaddresses([value]):
+                email = email.strip().lower()
+                if not email:
+                    continue
+                if email not in addresses:
+                    addresses[email] = (name.strip(), source)
+                elif not addresses[email][0] and name.strip():
+                    addresses[email] = (name.strip(), addresses[email][1])
+        external = set(cls.emails_to_check(list(addresses)))
+        return {email: value for email, value in addresses.items()
+            if email in external}
+
     def get_mail_contacts(self, headers):
         """Find every matching email mechanism, preserving header priority."""
         Mechanism = Pool().get('party.contact_mechanism')
-        emails = self.emails_to_check(self.parse_addresses([
-                    headers.get(key, '') for key in ('from', 'to', 'cc')]))
+        emails = list(self.get_mail_addresses(headers))
         if not emails:
             return {}
         # Contact values may have surrounding whitespace from older imports.
@@ -477,6 +496,14 @@ class Activity(metaclass=PoolMeta):
             if email in contacts and mechanism.party not in contacts[email]:
                 contacts[email].append(mechanism.party)
         return contacts
+
+    def get_mail_contact_candidates(self, headers, contacts=None):
+        """Select contact candidates without narrowing company identification."""
+        if contacts is None:
+            contacts = self.get_mail_contacts(headers)
+        addresses = self.get_mail_addresses(headers)
+        return {email: match_contact_name(addresses[email][0], parties)
+            for email, parties in contacts.items()}
 
     def get_mail_resource(self, headers):
         """Reuse the resource of a previous activity in the same company."""
@@ -535,12 +562,15 @@ class Activity(metaclass=PoolMeta):
         allowed = set(contact.on_change_with_allowed_contacts())
         existing = {contact.party for contact in self.contacts}
         additions = []
-        for parties in self.get_mail_contacts(headers).values():
-            for party in parties:
-                if party.id in allowed and party not in existing:
-                    additions.append(ActivityParty(
-                            activity=self, party=party, company=self.company))
-                    existing.add(party)
+        for parties in self.get_mail_contact_candidates(headers).values():
+            if len(parties) != 1:
+                continue
+            party, = parties
+            if (party != self.party and party.id in allowed
+                    and party not in existing):
+                additions.append(ActivityParty(
+                        activity=self, party=party, company=self.company))
+                existing.add(party)
         self.contacts += tuple(additions)
 
     @classmethod

@@ -1,7 +1,40 @@
 """Extract the participants of internally forwarded messages."""
 
 import re
+import unicodedata
 from html.parser import HTMLParser
+
+
+def match_contact_name(name, parties):
+    """Narrow email matches only when the display name provides evidence.
+
+    An exact name takes precedence over a prefix containing at least two words.
+    Keep all candidates on a missing/unrecognized name so callers can surface
+    the ambiguity instead of guessing. A pipe suffix denotes an organization.
+    """
+    parties = [party for party in parties if party.active]
+    if len(parties) < 2:
+        return parties
+
+    def words(value):
+        value = unicodedata.normalize('NFKD', (value or '').partition('|')[0])
+        value = ''.join(c for c in value if not unicodedata.combining(c))
+        return re.findall(r'[^\W_]+', value.casefold())
+
+    header = words(name)
+    if not header:
+        return parties
+    exact = []
+    partial = []
+    for party in parties:
+        candidate = words(party.name)
+        if candidate == header:
+            exact.append(party)
+        elif min(len(header), len(candidate)) >= 2:
+            size = min(len(header), len(candidate))
+            if header[:size] == candidate[:size]:
+                partial.append(party)
+    return exact or partial or parties
 
 
 class HeaderText(HTMLParser):
