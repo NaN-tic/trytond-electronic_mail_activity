@@ -34,6 +34,8 @@ class Cron(metaclass=PoolMeta):
         super().__setup__()
         cls.method.selection.extend([
             ('activity.activity|create_activity', "Create Activity")])
+        cls.methods_company_needed.add(
+            'activity.activity|create_activity')
 
 
 class Activity(metaclass=PoolMeta):
