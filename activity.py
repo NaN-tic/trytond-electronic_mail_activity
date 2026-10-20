@@ -621,10 +621,10 @@ class ActivityReplyMail(Wizard, metaclass=PoolMeta):
 class SendActivityMailMixin():
     __slots__ = ()
     activity_text = fields.Text('Activity Text', states={
-            'readonly': Eval('id', 0) <= 0,
+            'editable': Eval('id', 0) > 0,
             })
     activity_type = fields.Many2One('activity.type', 'Activity Type', states={
-            'readonly': Eval('id', 0) <= 0,
+            'editable': Eval('id', 0) > 0,
             })
     activity_state = fields.Selection([
             (None, ''),
@@ -632,23 +632,23 @@ class SendActivityMailMixin():
             ('done', 'Done'),
             ('cancelled', "Cancelled"),
             ], 'State', states={
-                'readonly': Eval('id', 0) <= 0,
+                'editable': Eval('id', 0) > 0,
                 })
     activity_work_time = fields.TimeDelta('Work Time', 'company_work_time',
         states={
-            'readonly': Eval('id', 0) <= 0,
+            'editable': Eval('id', 0) > 0,
             })
-    activity_subject = fields.Char('Activity Subject',states={
-            'readonly' : Eval('id', 0) <= 0,
+    activity_subject = fields.Char('Activity Subject', states={
+            'editable': Eval('id', 0) > 0,
             })
     activity_date = fields.DateTime('Activity Date', states={
-            'readonly' : Eval('id', 0) <= 0,
+            'editable': Eval('id', 0) > 0,
             })
     activity_contact = fields.Many2One('party.party', 'Contact', context={
             'company': Eval('company', -1),
         }, states={
-        'readonly': Eval('id', 0) <= 0,
-        })
+            'editable': Eval('id', 0) > 0,
+            })
 
     @classmethod
     def __setup__(cls):
