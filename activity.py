@@ -256,16 +256,14 @@ class Activity(metaclass=PoolMeta):
         if user and user.smtp_server and user.smtp_server.smtp_email:
             emails.append(user.smtp_server.smtp_email)
 
-        user.smtp_server.send_mail(mail.from_, list(set(emails)), mail.mail_file)
-        ElectronicMail.write([mail], {
-                'flag_send': True,
-                })
+        ElectronicMail.send_mail([mail], server=user.smtp_server,
+            sender=mail.from_, recipients=list(set(emails)))
         cls.write([activity], {
                 'mail': mail.id,
                 })
 
         logging.getLogger('Activity Mail').info(
-            'Send email %s from activity %s (to %s)' % (mail.id, activity.id,
+            'Queue email %s from activity %s (to %s)' % (mail.id, activity.id,
                 emails))
 
         return True
